@@ -7,9 +7,11 @@ import { friends as initialFriends } from "@/lib/data";
 import { ChatSidebar } from "@/components/chat-sidebar";
 import { ChatArea } from "@/components/chat-area";
 import { MessageSquare } from "lucide-react";
+import io from "socket.io-client";
 
 // Use environment variable or default to localhost:5000
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const socket = io(API_URL);
 
 export function ChitChatApp() {
   const router = useRouter();
@@ -40,7 +42,54 @@ export function ChitChatApp() {
         fetchChatrooms(currentUser.id);
         fetchFriends(currentUser.id);
 
+        // Connect Socket
+        socket.emit("join_user_room", { user_id: currentUser.id });
+
+        // Listeners
+        socket.on("new_message", (data: any) => {
+            setChatrooms(prev => prev.map(c => {
+                if (c.id === data.room_id) {
+                    return { ...c, messages: [...c.messages, data] };
+                }
+                return c;
+            }));
+
+            // If current chat is the one receiving message, update it too (state is separate? no, derived mostly)
+            // But setSelectedChat is separate state.
+            setSelectedChat(prev => {
+                if (prev && prev.id === data.room_id) {
+                     return { ...prev, messages: [...prev.messages, data] };
+                }
+                return prev;
+            });
+        });
+
+        socket.on("new_friend", (friend: Friend) => {
+            setFriends(prev => {
+                if (!prev.some(f => f.id === friend.id)) {
+                    return [...prev, friend].sort((a, b) => a.name.localeCompare(b.name));
+                }
+                return prev;
+            });
+        });
+
+        socket.on("added_to_room", (data: any) => {
+             // Re-fetch chatrooms to get the new one
+             fetchChatrooms(currentUser.id);
+        });
+
+        socket.on("new_private_chat", (data: any) => {
+             fetchChatrooms(currentUser.id);
+        });
+
         setLoading(false);
+
+        return () => {
+             socket.off("new_message");
+             socket.off("new_friend");
+             socket.off("added_to_room");
+             socket.off("new_private_chat");
+        }
       } catch (e) {
         console.error("Failed to parse user data", e);
         router.push("/login");
@@ -54,6 +103,10 @@ export function ChitChatApp() {
           if (res.ok) {
               const data = await res.json();
               setChatrooms(data.data);
+              // Join sockets for these rooms
+              data.data.forEach((room: Chatroom) => {
+                   socket.emit("join_room", { room_id: room.id });
+              });
           } else {
               console.error("Failed to fetch chatrooms");
           }
@@ -127,6 +180,8 @@ export function ChitChatApp() {
             };
             setChatrooms(prev => [...prev, newChatroom]);
             setSelectedChat(newChatroom);
+            // Join socket room
+            socket.emit("join_room", { room_id: newChatroom.id });
         } else {
             console.error("Failed to create chatroom");
             alert("Failed to create chatroom");
@@ -207,6 +262,8 @@ export function ChitChatApp() {
             } else {
                 setChatrooms(prev => [newChatroom, ...prev]);
                 handleSelectChat(newChatroom);
+                // Join socket room
+                socket.emit("join_room", { room_id: newChatroom.id });
             }
         }
     } catch (error) {

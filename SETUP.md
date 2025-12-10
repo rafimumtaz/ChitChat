@@ -75,7 +75,7 @@ python chat-distributed/publisher/message_publisher.py
 
 **Terminal 2: Consumer (Message Worker)**
 ```bash
-python chat-distributed/consumer/Message_Consumer.py
+python chat-distributed/consumer/message_consumer.py
 ```
 *This worker listens for messages from RabbitMQ and saves them to the database.*
 

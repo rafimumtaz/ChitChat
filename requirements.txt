@@ -5,3 +5,5 @@ mysql-connector-python
 pymysql
 werkzeug
 python-dotenv
+flask-socketio
+eventlet
