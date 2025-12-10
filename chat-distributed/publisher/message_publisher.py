@@ -445,6 +445,7 @@ def get_messages():
 def search_users():
     query = request.args.get('query', '')
     current_user_id = request.args.get('user_id')
+    include_friends = request.args.get('include_friends', 'false').lower() == 'true'
 
     if not current_user_id:
          return jsonify({"status": "error", "message": "Missing user_id"}), 400
@@ -455,19 +456,22 @@ def search_users():
         cursor = conn.cursor(dictionary=True)
 
         # Search users not strictly matching query but excluding current user
-        # Also exclude users already friends with current user
+        # Conditionally exclude friends
         sql = """
             SELECT u.user_id, u.username, u.status
             FROM users u
             WHERE u.user_id != %s
             AND u.username LIKE %s
-            AND u.user_id NOT IN (
-                SELECT friend_id FROM friends WHERE user_id = %s
-            )
-            LIMIT 20
         """
-        search_pattern = f"%{query}%"
-        cursor.execute(sql, (current_user_id, search_pattern, current_user_id))
+        params = [current_user_id, f"%{query}%"]
+
+        if not include_friends:
+             sql += " AND u.user_id NOT IN (SELECT friend_id FROM friends WHERE user_id = %s)"
+             params.append(current_user_id)
+
+        sql += " LIMIT 20"
+
+        cursor.execute(sql, tuple(params))
         users = cursor.fetchall()
 
         formatted_users = []

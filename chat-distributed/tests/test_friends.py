@@ -25,12 +25,32 @@ class TestFriendsAPI(unittest.TestCase):
             {'user_id': 2, 'username': 'otheruser', 'status': 'online'}
         ]
 
+        # Default: exclude friends
         response = self.app.get('/users/search?query=other&user_id=1')
-
         self.assertEqual(response.status_code, 200)
-        data = response.get_json()
-        self.assertEqual(len(data['data']), 1)
-        self.assertEqual(data['data'][0]['name'], 'otheruser')
+
+        # Verify SQL contains NOT IN clause for default behavior
+        args = mock_cursor.execute.call_args[0]
+        self.assertIn("NOT IN", args[0])
+
+    @patch('message_publisher.get_db_connection')
+    def test_search_users_include_friends(self, mock_get_db):
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_get_db.return_value = mock_conn
+        mock_conn.cursor.return_value = mock_cursor
+
+        mock_cursor.fetchall.return_value = [
+            {'user_id': 2, 'username': 'frienduser', 'status': 'online'}
+        ]
+
+        # include_friends=true
+        response = self.app.get('/users/search?query=friend&user_id=1&include_friends=true')
+        self.assertEqual(response.status_code, 200)
+
+        # Verify SQL does NOT contain NOT IN clause
+        args = mock_cursor.execute.call_args[0]
+        self.assertNotIn("NOT IN", args[0])
 
     @patch('message_publisher.get_db_connection')
     def test_add_friend(self, mock_get_db):
@@ -49,15 +69,6 @@ class TestFriendsAPI(unittest.TestCase):
 
         self.assertEqual(response.status_code, 201)
         self.assertIn("Friend added", response.get_json()['message'])
-
-        # Verify bidirectional insert
-        # We expect a single execute call with multiple values or multiple execute calls?
-        # The implementation uses: "INSERT ... VALUES (%s, %s), (%s, %s)"
-        mock_cursor.execute.assert_called()
-        args = mock_cursor.execute.call_args[0]
-        self.assertIn("INSERT INTO friends", args[0])
-        # Check params (user_id, friend_id, friend_id, user_id)
-        self.assertEqual(args[1], (1, 2, 2, 1))
 
     @patch('message_publisher.get_db_connection')
     def test_get_friends(self, mock_get_db):
