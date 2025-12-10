@@ -52,7 +52,7 @@ export default function LoginPage() {
         <div className="text-center">
           <h2 className="text-3xl font-bold tracking-tight text-foreground">Sign in</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Welcome back to the distributed chat
+            Welcome back to the Chitter Chatter! Please enter your credentials to access your account.
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>

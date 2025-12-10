@@ -52,7 +52,7 @@ export default function RegisterPage() {
         <div className="text-center">
           <h2 className="text-3xl font-bold tracking-tight text-foreground">Create an account</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Join the distributed chat
+            Join the Chitter Chatter community! Please fill in the details below to register a new account.
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
