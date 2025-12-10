@@ -92,7 +92,7 @@ _pool = MySQLPool(size=POOL_SIZE)
 # Uses publisher_msg_id UNIQUE constraint to avoid duplicates.
 # We intentionally do a no-op in ON DUPLICATE KEY UPDATE (keep existing row intact).
 INSERT_SQL = """
-INSERT INTO MESSAGES (
+INSERT INTO messages (
     publisher_msg_id, room_id, sender_id, seq, content, created_at, broker_received_at
 ) VALUES (
     %s, %s, %s, %s, %s, FROM_UNIXTIME(%s), NOW()

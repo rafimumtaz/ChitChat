@@ -121,7 +121,7 @@ def register():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        sql = "INSERT INTO USER (username, email, password, status) VALUES (%s, %s, %s, 'offline')"
+        sql = "INSERT INTO users (username, email, password, status) VALUES (%s, %s, %s, 'offline')"
         cursor.execute(sql, (username, email, hashed_password))
         conn.commit()
 
@@ -149,13 +149,13 @@ def login():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        sql = "SELECT * FROM USER WHERE email = %s"
+        sql = "SELECT * FROM users WHERE email = %s"
         cursor.execute(sql, (email,))
         user = cursor.fetchone()
 
         if user and check_password_hash(user['password'], password):
             # Update status to online
-            update_sql = "UPDATE USER SET status = 'online' WHERE user_id = %s"
+            update_sql = "UPDATE users SET status = 'online' WHERE user_id = %s"
             cursor.execute(update_sql, (user['user_id'],))
             conn.commit()
 
