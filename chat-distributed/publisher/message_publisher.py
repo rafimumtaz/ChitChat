@@ -186,6 +186,7 @@ def create_room():
     data = request.get_json()
     room_name = data.get('room_name')
     created_by = data.get('created_by')
+    room_type = data.get('type', 'group')
 
     if not room_name or not created_by:
         return jsonify({"status": "error", "message": "Missing required fields: room_name, created_by"}), 400
@@ -196,8 +197,8 @@ def create_room():
         cursor = conn.cursor(dictionary=True)
 
         # 1. Insert into chatrooms
-        sql_room = "INSERT INTO chatrooms (room_name, created_by) VALUES (%s, %s)"
-        cursor.execute(sql_room, (room_name, created_by))
+        sql_room = "INSERT INTO chatrooms (room_name, created_by, type) VALUES (%s, %s, %s)"
+        cursor.execute(sql_room, (room_name, created_by, room_type))
         room_id = cursor.lastrowid
 
         # 2. Insert into room_members
@@ -212,12 +213,123 @@ def create_room():
             "data": {
                 "room_id": room_id,
                 "room_name": room_name,
+                "type": room_type,
                 "created_by": created_by
             }
         }), 201
     except mysql.connector.Error as err:
         if conn:
             conn.rollback()
+        return jsonify({"status": "error", "message": str(err)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/private-chat', methods=['POST'])
+def start_private_chat():
+    if not request.is_json:
+        return jsonify({"status": "error", "message": "Content-Type must be application/json"}), 400
+
+    data = request.get_json()
+    user_id = data.get('user_id')
+    friend_id = data.get('friend_id')
+
+    if not user_id or not friend_id:
+        return jsonify({"status": "error", "message": "Missing user_id or friend_id"}), 400
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # 1. Check if a direct room already exists
+        # We find a room of type 'direct' where both users are members.
+        sql_check = """
+            SELECT c.room_id, c.room_name
+            FROM chatrooms c
+            JOIN room_members rm1 ON c.room_id = rm1.room_id
+            JOIN room_members rm2 ON c.room_id = rm2.room_id
+            WHERE c.type = 'direct'
+            AND rm1.user_id = %s
+            AND rm2.user_id = %s
+            LIMIT 1
+        """
+        cursor.execute(sql_check, (user_id, friend_id))
+        existing_room = cursor.fetchone()
+
+        if existing_room:
+             return jsonify({
+                 "status": "success",
+                 "message": "Private chat exists",
+                 "data": {
+                     "room_id": existing_room['room_id'],
+                     "room_name": existing_room['room_name'],
+                     "type": 'direct'
+                 }
+             }), 200
+
+        # 2. Create new direct room
+        # For direct rooms, room_name isn't strictly displayed, but we need a value.
+        # We can use a unique string like "direct_<id>_<id>"
+        room_name = f"direct_{min(user_id, friend_id)}_{max(user_id, friend_id)}"
+
+        sql_create = "INSERT INTO chatrooms (room_name, created_by, type) VALUES (%s, %s, 'direct')"
+        cursor.execute(sql_create, (room_name, user_id))
+        room_id = cursor.lastrowid
+
+        # 3. Add both members
+        sql_members = "INSERT INTO room_members (room_id, user_id) VALUES (%s, %s), (%s, %s)"
+        cursor.execute(sql_members, (room_id, user_id, room_id, friend_id))
+
+        conn.commit()
+
+        return jsonify({
+            "status": "success",
+            "message": "Private chat started",
+            "data": {
+                "room_id": room_id,
+                "room_name": room_name,
+                "type": 'direct'
+            }
+        }), 201
+    except mysql.connector.Error as err:
+        if conn:
+            conn.rollback()
+        return jsonify({"status": "error", "message": str(err)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/chatrooms/add-member', methods=['POST'])
+def add_chatroom_member():
+    if not request.is_json:
+        return jsonify({"status": "error", "message": "Content-Type must be application/json"}), 400
+
+    data = request.get_json()
+    room_id = data.get('room_id')
+    user_id = data.get('user_id')
+
+    if not room_id or not user_id:
+        return jsonify({"status": "error", "message": "Missing room_id or user_id"}), 400
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Check if already a member
+        check_sql = "SELECT 1 FROM room_members WHERE room_id = %s AND user_id = %s"
+        cursor.execute(check_sql, (room_id, user_id))
+        if cursor.fetchone():
+             return jsonify({"status": "error", "message": "User already in chatroom"}), 409
+
+        # Add member
+        sql = "INSERT INTO room_members (room_id, user_id) VALUES (%s, %s)"
+        cursor.execute(sql, (room_id, user_id))
+        conn.commit()
+
+        return jsonify({"status": "success", "message": "Member added successfully"}), 200
+    except mysql.connector.Error as err:
         return jsonify({"status": "error", "message": str(err)}), 500
     finally:
         if conn:
@@ -248,14 +360,31 @@ def get_chatrooms():
 
         chatrooms = cursor.fetchall()
 
-        # Format chatrooms to match frontend structure (needs messages field to be an array)
+        # Format chatrooms
         formatted_chatrooms = []
         for room in chatrooms:
+             display_name = room['room_name']
+
+             # If direct chat, find the OTHER user's name
+             if room.get('type') == 'direct' and user_id:
+                 # Fetch the other member
+                 sql_other = """
+                    SELECT u.username
+                    FROM room_members rm
+                    JOIN users u ON rm.user_id = u.user_id
+                    WHERE rm.room_id = %s AND rm.user_id != %s
+                 """
+                 cursor.execute(sql_other, (room['room_id'], user_id))
+                 other_user = cursor.fetchone()
+                 if other_user:
+                     display_name = other_user['username']
+
              formatted_chatrooms.append({
                  "id": str(room['room_id']),
-                 "name": room['room_name'],
-                 "topic": "General topic", # Placeholder as topic is not in DB
-                 "messages": [] # Fetching messages can be done separately or here if needed, but for list we can send empty or last message
+                 "name": display_name,
+                 "topic": "Direct Message" if room.get('type') == 'direct' else "General topic",
+                 "type": room.get('type', 'group'),
+                 "messages": []
              })
 
         return jsonify({

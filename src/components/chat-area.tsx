@@ -9,13 +9,19 @@ import { cn } from "@/lib/utils";
 import { Info, SendHorizontal, Smile } from "lucide-react";
 import React, { useState, useRef, useEffect } from "react";
 
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { UserPlus } from "lucide-react";
+import { users } from "@/lib/data";
+
 interface ChatAreaProps {
   selectedChat: Chatroom;
   onSendMessage: (content: string) => void;
+  onAddMember: (userId: string) => void;
   currentUser: User;
 }
 
-export function ChatArea({ selectedChat, onSendMessage, currentUser }: ChatAreaProps) {
+export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser }: ChatAreaProps) {
   const [newMessage, setNewMessage] = useState("");
   const scrollViewportRef = useRef<HTMLDivElement>(null);
 
@@ -41,10 +47,15 @@ export function ChatArea({ selectedChat, onSendMessage, currentUser }: ChatAreaP
           <h2 className="text-lg font-semibold">{selectedChat.name}</h2>
           <p className="text-sm text-muted-foreground">{selectedChat.topic}</p>
         </div>
-        <Button variant="ghost" size="icon">
-          <Info className="w-5 h-5" />
-          <span className="sr-only">Chatroom Info</span>
-        </Button>
+        <div className="flex items-center gap-2">
+            {(selectedChat.type === 'group' || !selectedChat.type) && (
+                <AddMemberDialog onAddMember={onAddMember} currentUser={currentUser} />
+            )}
+            <Button variant="ghost" size="icon">
+              <Info className="w-5 h-5" />
+              <span className="sr-only">Chatroom Info</span>
+            </Button>
+        </div>
       </header>
 
       <ScrollArea className="flex-1" viewportRef={scrollViewportRef}>
@@ -74,6 +85,83 @@ export function ChatArea({ selectedChat, onSendMessage, currentUser }: ChatAreaP
         </form>
       </footer>
     </div>
+  );
+}
+
+function AddMemberDialog({ onAddMember, currentUser }: { onAddMember: (userId: string) => void; currentUser: User }) {
+  const [open, setOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
+
+  // Reuse the search logic from ChatSidebar ideally, but duplicating for now as it's small
+  React.useEffect(() => {
+    const searchUsers = async () => {
+        if (!searchTerm) {
+            setAvailableUsers([]);
+            return;
+        }
+
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        try {
+            const res = await fetch(`${API_URL}/users/search?query=${encodeURIComponent(searchTerm)}&user_id=${currentUser.id}`);
+            if (res.ok) {
+                const data = await res.json();
+                setAvailableUsers(data.data);
+            }
+        } catch (error) {
+            console.error("Error searching users", error);
+        }
+    };
+
+    const timeoutId = setTimeout(() => {
+        searchUsers();
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, currentUser.id]);
+
+  const handleAdd = (user: User) => {
+    onAddMember(user.id);
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" title="Add Member">
+          <UserPlus className="w-5 h-5" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Add Member to Chatroom</DialogTitle>
+          <DialogDescription>Search for users to add to this chatroom.</DialogDescription>
+        </DialogHeader>
+        <div className="pt-4">
+            <Input
+              placeholder="Search by name..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+        </div>
+        <ScrollArea className="max-h-64 -mx-6 px-6">
+          <div className="space-y-2 py-4">
+            {availableUsers.length > 0 ? availableUsers.map(user => (
+              <div key={user.id} className="flex items-center justify-between p-2 rounded-md hover:bg-accent">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.avatarUrl} alt={user.name} />
+                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <span>{user.name}</span>
+                </div>
+                <Button size="sm" onClick={() => handleAdd(user)}>Add</Button>
+              </div>
+            )) : <p className="text-sm text-center text-muted-foreground py-4">No users found.</p>}
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
   );
 }
 

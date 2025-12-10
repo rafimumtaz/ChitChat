@@ -30,6 +30,7 @@ interface ChatSidebarProps {
   onCreateChatroom: (name: string, topic: string) => void;
   onAddFriend: (friend: User) => void;
   onRemoveFriend: (friendId: string) => void;
+  onStartPrivateChat: (friend: Friend) => void;
   user: User;
 }
 
@@ -41,6 +42,7 @@ export function ChatSidebar({
   onCreateChatroom,
   onAddFriend,
   onRemoveFriend,
+  onStartPrivateChat,
   user
 }: ChatSidebarProps) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -99,7 +101,7 @@ export function ChatSidebar({
             action={<AddFriendDialog onAddFriend={onAddFriend} currentFriends={friends} currentUser={user} />}
           >
             {filteredFriends.map((friend) => (
-              <FriendItem key={friend.id} friend={friend} onRemoveFriend={onRemoveFriend} />
+              <FriendItem key={friend.id} friend={friend} onRemoveFriend={onRemoveFriend} onStartPrivateChat={onStartPrivateChat} />
             ))}
           </NavSection>
         </div>
@@ -154,14 +156,15 @@ function NavItem({ item, isSelected, onClick, icon }: { item: Chatroom, isSelect
   );
 }
 
-function FriendItem({ friend, onRemoveFriend }: { friend: Friend, onRemoveFriend: (friendId: string) => void }) {
+function FriendItem({ friend, onRemoveFriend, onStartPrivateChat }: { friend: Friend, onRemoveFriend: (friendId: string) => void, onStartPrivateChat: (friend: Friend) => void }) {
   const [isHovered, setIsHovered] = useState(false);
   
   return (
     <li 
-      className="w-full rounded-md transition-colors hover:bg-accent/50"
+      className="w-full rounded-md transition-colors hover:bg-accent/50 cursor-pointer"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={() => onStartPrivateChat(friend)}
     >
        <div className="flex items-center w-full justify-start gap-3 h-12 px-2">
         <div className="relative">
@@ -173,18 +176,32 @@ function FriendItem({ friend, onRemoveFriend }: { friend: Friend, onRemoveFriend
         </div>
         <span className="flex-1 truncate text-left">{friend.name}</span>
         {isHovered && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onRemoveFriend(friend.id)}>
-                  <X className="w-4 h-4 text-muted-foreground" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Remove Friend</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onStartPrivateChat(friend)}>
+                    <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Message</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onRemoveFriend(friend.id)}>
+                    <X className="w-4 h-4 text-muted-foreground" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Remove Friend</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         )}
       </div>
     </li>
