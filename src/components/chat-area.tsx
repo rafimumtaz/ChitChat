@@ -103,7 +103,8 @@ function AddMemberDialog({ onAddMember, currentUser }: { onAddMember: (userId: s
 
         const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
         try {
-            const res = await fetch(`${API_URL}/users/search?query=${encodeURIComponent(searchTerm)}&user_id=${currentUser.id}`);
+            // When adding a member to a group, we want to see ALL users, including friends.
+            const res = await fetch(`${API_URL}/users/search?query=${encodeURIComponent(searchTerm)}&user_id=${currentUser.id}&include_friends=true`);
             if (res.ok) {
                 const data = await res.json();
                 setAvailableUsers(data.data);
