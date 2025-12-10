@@ -4,8 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { Chatroom, Message } from "@/lib/data";
-import { loggedInUser } from "@/lib/data";
+import type { Chatroom, Message, User } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { Info, SendHorizontal, Smile } from "lucide-react";
 import React, { useState, useRef, useEffect } from "react";
@@ -13,9 +12,10 @@ import React, { useState, useRef, useEffect } from "react";
 interface ChatAreaProps {
   selectedChat: Chatroom;
   onSendMessage: (content: string) => void;
+  currentUser: User;
 }
 
-export function ChatArea({ selectedChat, onSendMessage }: ChatAreaProps) {
+export function ChatArea({ selectedChat, onSendMessage, currentUser }: ChatAreaProps) {
   const [newMessage, setNewMessage] = useState("");
   const scrollViewportRef = useRef<HTMLDivElement>(null);
 
@@ -50,7 +50,7 @@ export function ChatArea({ selectedChat, onSendMessage }: ChatAreaProps) {
       <ScrollArea className="flex-1" viewportRef={scrollViewportRef}>
         <div className="p-4 lg:p-8 space-y-6">
           {selectedChat.messages.map((message) => (
-            <ChatMessage key={message.id} message={message} />
+            <ChatMessage key={message.id} message={message} currentUser={currentUser} />
           ))}
         </div>
       </ScrollArea>
@@ -77,8 +77,8 @@ export function ChatArea({ selectedChat, onSendMessage }: ChatAreaProps) {
   );
 }
 
-function ChatMessage({ message }: { message: Message }) {
-    const isSender = message.sender.id === loggedInUser.id;
+function ChatMessage({ message, currentUser }: { message: Message; currentUser: User }) {
+    const isSender = message.sender.id === currentUser.id;
   return (
     <div className={cn("flex items-start gap-4", isSender && "flex-row-reverse")}>
       <Avatar className="h-10 w-10">
