@@ -94,10 +94,6 @@ def send_message():
 
     # Panggil fungsi publisher
     if publish_message(data):
-        # Emit real-time event to the room
-        # We need sender info (name/avatar) to display nicely on frontend
-        # For simplicity, we can fetch it or pass it.
-        # Ideally, we should fetch to be secure/accurate.
         conn = get_db_connection()
         try:
              cursor = conn.cursor(dictionary=True)
@@ -108,7 +104,7 @@ def send_message():
              socket_message = {
                 "id": data['publisher_msg_id'],
                 "content": data['content'],
-                "timestamp": "Just now", # Frontend can format
+                "timestamp": "Just now", 
                 "sender": {
                     "id": str(data['sender_id']),
                     "name": sender_name,
@@ -293,7 +289,6 @@ def start_private_chat():
         cursor = conn.cursor(dictionary=True)
 
         # 1. Check if a direct room already exists
-        # We find a room of type 'direct' where both users are members.
         sql_check = """
             SELECT c.room_id, c.room_name
             FROM chatrooms c
@@ -319,8 +314,6 @@ def start_private_chat():
              }), 200
 
         # 2. Create new direct room
-        # For direct rooms, room_name isn't strictly displayed, but we need a value.
-        # We can use a unique string like "direct_<id>_<id>"
         room_name = f"direct_{min(user_id, friend_id)}_{max(user_id, friend_id)}"
 
         sql_create = "INSERT INTO chatrooms (room_name, created_by, type) VALUES (%s, %s, 'direct')"
@@ -336,7 +329,7 @@ def start_private_chat():
         # Emit event to the friend so they see the new chat immediately
         socketio.emit('new_private_chat', {
             "room_id": str(room_id),
-            "room_name": room_name, # Frontend will need to swap name likely, or we send generic
+            "room_name": room_name, 
             "type": 'direct',
             "initiator_id": str(user_id)
         }, room=f"user_{friend_id}")
@@ -589,9 +582,7 @@ def add_friend():
         if adder:
             socketio.emit('new_friend', {
                 "id": str(user_id),
-                "name": adder[0], # Tuple result from standard cursor if not dict=True?
-                                  # Wait, get_db_connection().cursor() is default tuple.
-                                  # check: line 592 is cursor = conn.cursor() (no dict)
+                "name": adder[0], 
                 "avatarUrl": f"https://ui-avatars.com/api/?name={adder[0]}",
                 "online": adder[1] == 'online'
             }, room=f"user_{friend_id}")
