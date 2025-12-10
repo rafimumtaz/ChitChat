@@ -177,6 +177,97 @@ def login():
         if conn:
             conn.close()
 
+# Chatroom Endpoints
+@app.route('/create-room', methods=['POST'])
+def create_room():
+    if not request.is_json:
+        return jsonify({"status": "error", "message": "Content-Type must be application/json"}), 400
+
+    data = request.get_json()
+    room_name = data.get('room_name')
+    created_by = data.get('created_by')
+
+    if not room_name or not created_by:
+        return jsonify({"status": "error", "message": "Missing required fields: room_name, created_by"}), 400
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # 1. Insert into chatrooms
+        sql_room = "INSERT INTO chatrooms (room_name, created_by) VALUES (%s, %s)"
+        cursor.execute(sql_room, (room_name, created_by))
+        room_id = cursor.lastrowid
+
+        # 2. Insert into room_members
+        sql_member = "INSERT INTO room_members (room_id, user_id) VALUES (%s, %s)"
+        cursor.execute(sql_member, (room_id, created_by))
+
+        conn.commit()
+
+        return jsonify({
+            "status": "success",
+            "message": "Chatroom created successfully",
+            "data": {
+                "room_id": room_id,
+                "room_name": room_name,
+                "created_by": created_by
+            }
+        }), 201
+    except mysql.connector.Error as err:
+        if conn:
+            conn.rollback()
+        return jsonify({"status": "error", "message": str(err)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/chatrooms', methods=['GET'])
+def get_chatrooms():
+    user_id = request.args.get('user_id')
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        if user_id:
+            # Get rooms where user is a member
+            sql = """
+                SELECT c.*
+                FROM chatrooms c
+                JOIN room_members rm ON c.room_id = rm.room_id
+                WHERE rm.user_id = %s
+            """
+            cursor.execute(sql, (user_id,))
+        else:
+            # Get all rooms
+            sql = "SELECT * FROM chatrooms"
+            cursor.execute(sql)
+
+        chatrooms = cursor.fetchall()
+
+        # Format chatrooms to match frontend structure (needs messages field to be an array)
+        formatted_chatrooms = []
+        for room in chatrooms:
+             formatted_chatrooms.append({
+                 "id": str(room['room_id']),
+                 "name": room['room_name'],
+                 "topic": "General topic", # Placeholder as topic is not in DB
+                 "messages": [] # Fetching messages can be done separately or here if needed, but for list we can send empty or last message
+             })
+
+        return jsonify({
+            "status": "success",
+            "data": formatted_chatrooms
+        }), 200
+    except mysql.connector.Error as err:
+        return jsonify({"status": "error", "message": str(err)}), 500
+    finally:
+        if conn:
+            conn.close()
+
 if __name__ == '__main__':
     print(" === Application Server (Message Publisher & Auth) Started ===")
     app.run(debug=True, port=5000)
