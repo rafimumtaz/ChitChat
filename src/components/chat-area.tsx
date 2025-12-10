@@ -26,10 +26,19 @@ export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser
   const scrollViewportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (scrollViewportRef.current) {
-        scrollViewportRef.current.scrollTop = scrollViewportRef.current.scrollHeight;
-    }
-  }, [selectedChat.messages]);
+    // Small timeout to allow render to complete before scrolling
+    // This often fixes issues where the scroll happens before the new content is fully laid out
+    const timeoutId = setTimeout(() => {
+        if (scrollViewportRef.current) {
+            scrollViewportRef.current.scrollTo({
+                top: scrollViewportRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [selectedChat.messages, selectedChat.id]);
 
 
   const handleFormSubmit = (e: React.FormEvent) => {
