@@ -4,3 +4,5 @@ pika
 mysql-connector-python
 pymysql
 werkzeug
+flask-socketio
+eventlet

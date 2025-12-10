@@ -5,9 +5,11 @@ from flask_cors import CORS
 import pika
 import mysql.connector
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_socketio import SocketIO, emit, join_room, leave_room
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Konfigurasi RabbitMQ
 RABBITMQ_HOST = os.getenv('RABBITMQ_HOST', 'localhost')
@@ -92,6 +94,35 @@ def send_message():
 
     # Panggil fungsi publisher
     if publish_message(data):
+        # Emit real-time event to the room
+        # We need sender info (name/avatar) to display nicely on frontend
+        # For simplicity, we can fetch it or pass it.
+        # Ideally, we should fetch to be secure/accurate.
+        conn = get_db_connection()
+        try:
+             cursor = conn.cursor(dictionary=True)
+             cursor.execute("SELECT username FROM users WHERE user_id = %s", (data['sender_id'],))
+             sender_user = cursor.fetchone()
+             sender_name = sender_user['username'] if sender_user else "Unknown"
+
+             socket_message = {
+                "id": data['publisher_msg_id'],
+                "content": data['content'],
+                "timestamp": "Just now", # Frontend can format
+                "sender": {
+                    "id": str(data['sender_id']),
+                    "name": sender_name,
+                    "avatarUrl": f"https://ui-avatars.com/api/?name={sender_name}",
+                    "online": True
+                },
+                "room_id": str(data['room_id'])
+             }
+             socketio.emit('new_message', socket_message, room=f"room_{data['room_id']}")
+        except Exception as e:
+             print(f"Socket emit failed: {e}")
+        finally:
+             if conn: conn.close()
+
         return jsonify({
             "status": "accepted", 
             "message": "Message successfully handed over to RabbitMQ",
@@ -99,6 +130,25 @@ def send_message():
         }), 202
     else:
         return jsonify({"status": "error", "message": "Message Broker is unavailable. Try again later."}), 503
+
+# SocketIO Events
+@socketio.on('connect')
+def handle_connect():
+    print('Client connected')
+
+@socketio.on('join_user_room')
+def handle_join_user_room(data):
+    user_id = data.get('user_id')
+    if user_id:
+        join_room(f"user_{user_id}")
+        print(f"User {user_id} joined room user_{user_id}")
+
+@socketio.on('join_room')
+def handle_join_room(data):
+    room_id = data.get('room_id')
+    if room_id:
+        join_room(f"room_{room_id}")
+        print(f"Client joined room_{room_id}")
 
 # Auth Endpoints
 @app.route('/register', methods=['POST'])
@@ -283,6 +333,14 @@ def start_private_chat():
 
         conn.commit()
 
+        # Emit event to the friend so they see the new chat immediately
+        socketio.emit('new_private_chat', {
+            "room_id": str(room_id),
+            "room_name": room_name, # Frontend will need to swap name likely, or we send generic
+            "type": 'direct',
+            "initiator_id": str(user_id)
+        }, room=f"user_{friend_id}")
+
         return jsonify({
             "status": "success",
             "message": "Private chat started",
@@ -327,6 +385,11 @@ def add_chatroom_member():
         sql = "INSERT INTO room_members (room_id, user_id) VALUES (%s, %s)"
         cursor.execute(sql, (room_id, user_id))
         conn.commit()
+
+        # Notify the added user
+        socketio.emit('added_to_room', {
+            "room_id": str(room_id)
+        }, room=f"user_{user_id}")
 
         return jsonify({"status": "success", "message": "Member added successfully"}), 200
     except mysql.connector.Error as err:
@@ -519,6 +582,20 @@ def add_friend():
         cursor.execute(sql, (user_id, friend_id, friend_id, user_id))
         conn.commit()
 
+        # Emit event to the friend
+        # Need fetch user details to send useful data
+        cursor.execute("SELECT username, status FROM users WHERE user_id = %s", (user_id,))
+        adder = cursor.fetchone()
+        if adder:
+            socketio.emit('new_friend', {
+                "id": str(user_id),
+                "name": adder[0], # Tuple result from standard cursor if not dict=True?
+                                  # Wait, get_db_connection().cursor() is default tuple.
+                                  # check: line 592 is cursor = conn.cursor() (no dict)
+                "avatarUrl": f"https://ui-avatars.com/api/?name={adder[0]}",
+                "online": adder[1] == 'online'
+            }, room=f"user_{friend_id}")
+
         return jsonify({"status": "success", "message": "Friend added successfully"}), 201
     except mysql.connector.Error as err:
         return jsonify({"status": "error", "message": str(err)}), 500
@@ -564,4 +641,4 @@ def get_friends():
 
 if __name__ == '__main__':
     print(" === Application Server (Message Publisher & Auth) Started ===")
-    app.run(debug=True, port=5000)
+    socketio.run(app, debug=True, port=5000, allow_unsafe_werkzeug=True)
