@@ -311,6 +311,124 @@ def get_messages():
         if conn:
             conn.close()
 
+# Friend Endpoints
+@app.route('/users/search', methods=['GET'])
+def search_users():
+    query = request.args.get('query', '')
+    current_user_id = request.args.get('user_id')
+
+    if not current_user_id:
+         return jsonify({"status": "error", "message": "Missing user_id"}), 400
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Search users not strictly matching query but excluding current user
+        # Also exclude users already friends with current user
+        sql = """
+            SELECT u.user_id, u.username, u.status
+            FROM users u
+            WHERE u.user_id != %s
+            AND u.username LIKE %s
+            AND u.user_id NOT IN (
+                SELECT friend_id FROM friends WHERE user_id = %s
+            )
+            LIMIT 20
+        """
+        search_pattern = f"%{query}%"
+        cursor.execute(sql, (current_user_id, search_pattern, current_user_id))
+        users = cursor.fetchall()
+
+        formatted_users = []
+        for u in users:
+             formatted_users.append({
+                 "id": str(u['user_id']),
+                 "name": u['username'],
+                 "avatarUrl": f"https://ui-avatars.com/api/?name={u['username']}",
+                 "online": u['status'] == 'online'
+             })
+
+        return jsonify({"status": "success", "data": formatted_users}), 200
+    except mysql.connector.Error as err:
+        return jsonify({"status": "error", "message": str(err)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/friends', methods=['POST'])
+def add_friend():
+    if not request.is_json:
+        return jsonify({"status": "error", "message": "Content-Type must be application/json"}), 400
+
+    data = request.get_json()
+    user_id = data.get('user_id')
+    friend_id = data.get('friend_id')
+
+    if not user_id or not friend_id:
+        return jsonify({"status": "error", "message": "Missing user_id or friend_id"}), 400
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Check if already friends
+        check_sql = "SELECT 1 FROM friends WHERE user_id = %s AND friend_id = %s"
+        cursor.execute(check_sql, (user_id, friend_id))
+        if cursor.fetchone():
+             return jsonify({"status": "error", "message": "Already friends"}), 409
+
+        # Insert friendship (bidirectional or unidirectional? Usually bidirectional in simple chat apps)
+        # Let's do bidirectional for simplicity so both see each other
+        sql = "INSERT INTO friends (user_id, friend_id) VALUES (%s, %s), (%s, %s)"
+        cursor.execute(sql, (user_id, friend_id, friend_id, user_id))
+        conn.commit()
+
+        return jsonify({"status": "success", "message": "Friend added successfully"}), 201
+    except mysql.connector.Error as err:
+        return jsonify({"status": "error", "message": str(err)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/friends', methods=['GET'])
+def get_friends():
+    user_id = request.args.get('user_id')
+    if not user_id:
+        return jsonify({"status": "error", "message": "Missing user_id"}), 400
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        sql = """
+            SELECT u.user_id, u.username, u.status
+            FROM users u
+            JOIN friends f ON u.user_id = f.friend_id
+            WHERE f.user_id = %s
+        """
+        cursor.execute(sql, (user_id,))
+        friends = cursor.fetchall()
+
+        formatted_friends = []
+        for f in friends:
+             formatted_friends.append({
+                 "id": str(f['user_id']),
+                 "name": f['username'],
+                 "avatarUrl": f"https://ui-avatars.com/api/?name={f['username']}",
+                 "online": f['status'] == 'online'
+             })
+
+        return jsonify({"status": "success", "data": formatted_friends}), 200
+    except mysql.connector.Error as err:
+        return jsonify({"status": "error", "message": str(err)}), 500
+    finally:
+        if conn:
+            conn.close()
+
 if __name__ == '__main__':
     print(" === Application Server (Message Publisher & Auth) Started ===")
     app.run(debug=True, port=5000)
