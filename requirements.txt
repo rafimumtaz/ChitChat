@@ -4,3 +4,4 @@ pika
 mysql-connector-python
 pymysql
 werkzeug
+python-dotenv

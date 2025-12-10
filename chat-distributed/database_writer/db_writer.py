@@ -16,10 +16,10 @@ from queue import Queue, Empty
 from threading import Lock
 
 # ---------- Configuration (env or defaults) ----------
-DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
+DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = int(os.getenv("DB_PORT", 3306))
 DB_USER = os.getenv("DB_USER", "root")
-DB_PASS = os.getenv("DB_PASS", "")
+DB_PASS = os.getenv("DB_PASS", "292006")
 DB_NAME = os.getenv("DB_NAME", "chat_distributed_db")
 POOL_SIZE = int(os.getenv("DB_POOL_SIZE", 5))
 POOL_TIMEOUT = float(os.getenv("DB_POOL_TIMEOUT", 5.0))  # seconds
