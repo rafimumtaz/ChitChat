@@ -171,6 +171,70 @@ export function ChitChatApp() {
   const handleRemoveFriend = (friendId: string) => {
     setFriends(prev => prev.filter(f => f.id !== friendId));
   };
+
+  const handleStartPrivateChat = async (friend: Friend) => {
+    if (!user) return;
+
+    try {
+        const res = await fetch(`${API_URL}/private-chat`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                user_id: user.id,
+                friend_id: friend.id
+            }),
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            const roomData = data.data;
+
+            // Backend returns technical room name, we want to show friend's name
+            const newChatroom: Chatroom = {
+                id: roomData.room_id.toString(),
+                name: friend.name,
+                topic: "Direct Message",
+                messages: [],
+                type: 'direct' // Assuming Chatroom interface has type optional or we ignore
+            };
+
+            // Check if room already in list
+            const existing = chatrooms.find(c => c.id === newChatroom.id);
+            if (existing) {
+                handleSelectChat(existing);
+            } else {
+                setChatrooms(prev => [newChatroom, ...prev]);
+                handleSelectChat(newChatroom);
+            }
+        }
+    } catch (error) {
+        console.error("Error starting private chat", error);
+    }
+  };
+
+  const handleAddMember = async (userId: string) => {
+    if (!selectedChat) return;
+    try {
+        const res = await fetch(`${API_URL}/chatrooms/add-member`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                room_id: selectedChat.id,
+                user_id: userId
+            })
+        });
+        if (!res.ok) {
+            console.error("Failed to add member");
+            alert("Failed to add member");
+        } else {
+            alert("Member added successfully");
+        }
+    } catch (error) {
+        console.error("Error adding member:", error);
+    }
+  };
   
   const handleSendMessage = (content: string) => {
     if (!selectedChat || !user) return;
@@ -240,6 +304,7 @@ export function ChitChatApp() {
         onCreateChatroom={handleCreateChatroom}
         onAddFriend={handleAddFriend}
         onRemoveFriend={handleRemoveFriend}
+        onStartPrivateChat={handleStartPrivateChat}
         user={user}
       />
       <main className="flex-1 flex flex-col">
@@ -248,6 +313,7 @@ export function ChitChatApp() {
             key={selectedChat.id} 
             selectedChat={selectedChat}
             onSendMessage={handleSendMessage}
+            onAddMember={handleAddMember}
             currentUser={user}
           />
         ) : (

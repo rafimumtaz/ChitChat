@@ -33,6 +33,7 @@ CREATE TABLE `users` (
 CREATE TABLE `chatrooms` (
   `room_id` bigint NOT NULL AUTO_INCREMENT,
   `room_name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `type` enum('group','direct') COLLATE utf8mb4_general_ci DEFAULT 'group',
   `created_by` bigint DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`room_id`),

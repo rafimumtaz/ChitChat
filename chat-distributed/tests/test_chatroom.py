@@ -37,8 +37,8 @@ class TestChatroomAPI(unittest.TestCase):
 
         # Verify transaction
         mock_cursor.execute.assert_any_call(
-            "INSERT INTO chatrooms (room_name, created_by) VALUES (%s, %s)",
-            ('#test-room', 1)
+            "INSERT INTO chatrooms (room_name, created_by, type) VALUES (%s, %s, %s)",
+            ('#test-room', 1, 'group')
         )
         mock_cursor.execute.assert_any_call(
             "INSERT INTO room_members (room_id, user_id) VALUES (%s, %s)",
