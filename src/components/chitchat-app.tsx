@@ -61,8 +61,30 @@ export function ChitChatApp() {
       }
   };
 
-  const handleSelectChat = (chatroom: Chatroom) => {
+  const handleSelectChat = async (chatroom: Chatroom) => {
+    // Optimistically set selected chat (will show empty messages initially)
+    // or keep previous selectedChat until data loads.
+    // For better UX, we'll set it immediately and then fetch messages.
     setSelectedChat(chatroom);
+
+    try {
+        const res = await fetch(`${API_URL}/messages?room_id=${chatroom.id}`);
+        if (res.ok) {
+            const data = await res.json();
+            const fullChatroom = {
+                ...chatroom,
+                messages: data.data
+            };
+            setSelectedChat(fullChatroom);
+
+            // Also update the chatrooms list cache so if we switch back and forth it might persist (optional)
+            setChatrooms(prev => prev.map(c => c.id === chatroom.id ? fullChatroom : c));
+        } else {
+             console.error("Failed to fetch messages");
+        }
+    } catch (error) {
+        console.error("Error fetching messages:", error);
+    }
   };
 
   const handleCreateChatroom = async (name: string, topic: string) => {

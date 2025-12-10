@@ -11,3 +11,13 @@
 127.0.0.1 - - [10/Dec/2025 06:07:29] "[35m[1mGET /chatrooms?user_id=1 HTTP/1.1[0m" 500 -
 127.0.0.1 - - [10/Dec/2025 06:07:29] "OPTIONS /create-room HTTP/1.1" 200 -
 127.0.0.1 - - [10/Dec/2025 06:07:29] "[35m[1mPOST /create-room HTTP/1.1[0m" 500 -
+ * Detected change in '/app/chat-distributed/publisher/message_publisher.py', reloading
+ === Application Server (Message Publisher & Auth) Started ===
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 132-491-319
+ * Detected change in '/app/chat-distributed/publisher/message_publisher.py', reloading
+ === Application Server (Message Publisher & Auth) Started ===
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 132-491-319
