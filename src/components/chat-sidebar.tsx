@@ -208,20 +208,20 @@ function CreateChatroomDialog({ onCreateChatroom }: { onCreateChatroom: (name: s
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7" id="create-chatroom-trigger">
                 <Plus className="w-4 h-4" />
               </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Create Chatroom</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </DialogTrigger>
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Create Chatroom</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create Chatroom</DialogTitle>
@@ -244,7 +244,7 @@ function CreateChatroomDialog({ onCreateChatroom }: { onCreateChatroom: (name: s
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={handleCreate}>Create</Button>
+          <Button onClick={handleCreate} id="create-chatroom-submit">Create</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -273,20 +273,20 @@ function AddFriendDialog({ onAddFriend, currentFriends, currentUser }: { onAddFr
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
               <Button variant="ghost" size="icon" className="h-7 w-7">
                 <UserPlus className="w-4 h-4" />
               </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Add Friend</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </DialogTrigger>
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Add Friend</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add a Friend</DialogTitle>

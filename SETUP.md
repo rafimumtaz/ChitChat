@@ -110,4 +110,5 @@ npm run dev
 1. Open your browser and go to `http://localhost:3000/register`.
 2. Create a new account.
 3. Login at `http://localhost:3000/login`.
-4. (Optional) Use Postman or Curl to test sending a message to `http://localhost:5000/send-message` and verify it appears in the MySQL `messages` table.
+4. Create a new chatroom using the '+' icon in the sidebar.
+5. (Optional) Use Postman or Curl to test sending a message to `http://localhost:5000/send-message` and verify it appears in the MySQL `messages` table.
