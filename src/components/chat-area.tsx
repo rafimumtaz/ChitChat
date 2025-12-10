@@ -24,18 +24,18 @@ interface ChatAreaProps {
 export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser }: ChatAreaProps) {
   const [newMessage, setNewMessage] = useState("");
   const scrollViewportRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
+      messagesEndRef.current?.scrollIntoView({ behavior });
+  }
 
   useEffect(() => {
-    // Small timeout to allow render to complete before scrolling
-    // This often fixes issues where the scroll happens before the new content is fully laid out
+    // Scroll to bottom immediately when chat changes or messages update
+    // 'instant' behavior ensures it happens "directly"
     const timeoutId = setTimeout(() => {
-        if (scrollViewportRef.current) {
-            scrollViewportRef.current.scrollTo({
-                top: scrollViewportRef.current.scrollHeight,
-                behavior: 'smooth'
-            });
-        }
-    }, 100);
+        scrollToBottom('instant');
+    }, 50); // Small buffer to ensure DOM layout
 
     return () => clearTimeout(timeoutId);
   }, [selectedChat.messages, selectedChat.id]);
@@ -72,6 +72,7 @@ export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser
           {selectedChat.messages.map((message) => (
             <ChatMessage key={message.id} message={message} currentUser={currentUser} />
           ))}
+          <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
       
