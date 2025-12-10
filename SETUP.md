@@ -32,7 +32,7 @@ Ensure you have the following installed on your machine:
 
 ## 2. Backend Setup (Flask & RabbitMQ)
 
-The backend consists of a Publisher (API) and a Consumer (Worker).
+The backend consists of a Publisher (API), a Consumer (Worker), and a Broker Setup script.
 
 ### a. Install Dependencies
 Navigate to the root directory and install the required Python packages:
@@ -57,7 +57,14 @@ DB_POOL_SIZE=5
 RABBITMQ_HOST=localhost
 ```
 
-### c. Run the Services
+### c. Initialize RabbitMQ
+Run the broker setup script once to create the necessary Exchange and Queue:
+```bash
+python chat-distributed/broker/rabbitmq_broker.py
+```
+*This ensures the `chat_exchange` and `chat_queue` are created and bound correctly.*
+
+### d. Run the Services
 You need to run the Publisher and Consumer in separate terminal windows.
 
 **Terminal 1: Publisher (Auth API & Message Sender)**
