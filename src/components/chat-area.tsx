@@ -47,7 +47,7 @@ export function ChatArea({ selectedChat, onSendMessage, currentUser }: ChatAreaP
         </Button>
       </header>
 
-      <ScrollArea className="flex-1" viewportRef={scrollViewportRef}>
+      <ScrollArea className="flex-1" viewportref={scrollViewportRef}>
         <div className="p-4 lg:p-8 space-y-6">
           {selectedChat.messages.map((message) => (
             <ChatMessage key={message.id} message={message} currentUser={currentUser} />
