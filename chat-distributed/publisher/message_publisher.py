@@ -268,6 +268,49 @@ def get_chatrooms():
         if conn:
             conn.close()
 
+@app.route('/messages', methods=['GET'])
+def get_messages():
+    room_id = request.args.get('room_id')
+    if not room_id:
+        return jsonify({"status": "error", "message": "Missing room_id"}), 400
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Join with users to get sender name
+        sql = """
+            SELECT m.message_id, m.content, m.created_at, m.sender_id, u.username
+            FROM messages m
+            JOIN users u ON m.sender_id = u.user_id
+            WHERE m.room_id = %s
+            ORDER BY m.created_at ASC
+        """
+        cursor.execute(sql, (room_id,))
+        messages = cursor.fetchall()
+
+        formatted_messages = []
+        for msg in messages:
+            formatted_messages.append({
+                "id": str(msg['message_id']),
+                "content": msg['content'],
+                "timestamp": msg['created_at'].strftime('%I:%M %p') if msg['created_at'] else "",
+                "sender": {
+                    "id": str(msg['sender_id']),
+                    "name": msg['username'],
+                    "avatarUrl": f"https://ui-avatars.com/api/?name={msg['username']}",
+                    "online": True
+                }
+            })
+
+        return jsonify({"status": "success", "data": formatted_messages}), 200
+    except mysql.connector.Error as err:
+        return jsonify({"status": "error", "message": str(err)}), 500
+    finally:
+        if conn:
+            conn.close()
+
 if __name__ == '__main__':
     print(" === Application Server (Message Publisher & Auth) Started ===")
     app.run(debug=True, port=5000)
