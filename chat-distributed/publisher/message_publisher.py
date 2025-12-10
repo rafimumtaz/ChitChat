@@ -18,7 +18,7 @@ DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = int(os.getenv("DB_PORT", 3306))
 DB_USER = os.getenv("DB_USER", "root")
 DB_PASS = os.getenv("DB_PASS", "292006")
-DB_NAME = os.getenv("DB_NAME", "chat_distributed_db")
+DB_NAME = os.getenv("DB_NAME", "chat_distribution_db")
 
 def get_db_connection():
     return mysql.connector.connect(
