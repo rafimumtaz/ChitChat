@@ -292,46 +292,13 @@ export function ChitChatApp() {
         console.error("Error adding member:", error);
     }
   };
-  
+
   const handleSendMessage = (content: string) => {
     if (!selectedChat || !user) return;
 
-    // Send to backend
-    // Note: This logic was already here, but in the previous turn I only implemented "create room".
-    // I should also hook this up to the backend if requested, but the task is specific to "Create Chatroom".
-    // However, since the user asked to "fix and implement Create Chatroom", I'll stick to that.
-    // But for better UX, I'll keep the optimistic update locally, and maybe later hook it up.
-    // The previous prompt said "Publisher... Create a function that publishes... when a user sends a message via the API".
-    // So I should probably call the API here too?
-    // The user said "Goal: The 'Create Chatroom' button must work immediately...".
-    // I will focus on Create Chatroom.
-
-    // Optimistic update
-    const newMessage: Message = {
-      id: `msg-${Date.now()}`,
-      content,
-      sender: user,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
-    };
-
-    const updatedChatrooms = chatrooms.map(chatroom => {
-      if (chatroom.id === selectedChat.id) {
-        return {
-          ...chatroom,
-          messages: [...chatroom.messages, newMessage],
-        };
-      }
-      return chatroom;
-    });
-
-    setChatrooms(updatedChatrooms);
-
-    const updatedSelectedChat = updatedChatrooms.find(c => c.id === selectedChat.id);
-    if (updatedSelectedChat) {
-      setSelectedChat(updatedSelectedChat);
-    }
-
-    // Call API (Background)
+    // Call API
+    // We rely on socket 'new_message' event to update the UI to avoid duplicate bubbles
+    // because the backend emits the event to sender as well.
     fetch(`${API_URL}/send-message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
