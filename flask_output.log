@@ -21,3 +21,8 @@
  * Restarting with stat
  * Debugger is active!
  * Debugger PIN: 132-491-319
+ * Detected change in '/app/chat-distributed/publisher/message_publisher.py', reloading
+ === Application Server (Message Publisher & Auth) Started ===
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 132-491-319

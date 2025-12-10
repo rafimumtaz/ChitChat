@@ -36,8 +36,9 @@ export function ChitChatApp() {
         };
         setUser(currentUser);
 
-        // Fetch chatrooms
+        // Fetch chatrooms and friends
         fetchChatrooms(currentUser.id);
+        fetchFriends(currentUser.id);
 
         setLoading(false);
       } catch (e) {
@@ -58,6 +59,20 @@ export function ChitChatApp() {
           }
       } catch (error) {
           console.error("Error fetching chatrooms:", error);
+      }
+  };
+
+  const fetchFriends = async (userId: string) => {
+      try {
+          const res = await fetch(`${API_URL}/friends?user_id=${userId}`);
+          if (res.ok) {
+              const data = await res.json();
+              setFriends(data.data);
+          } else {
+              console.error("Failed to fetch friends");
+          }
+      } catch (error) {
+          console.error("Error fetching friends:", error);
       }
   };
 
@@ -122,9 +137,34 @@ export function ChitChatApp() {
     }
   };
 
-  const handleAddFriend = (friend: Friend) => {
+  const handleAddFriend = async (friend: Friend) => {
+    if (!user) return;
+
+    // Optimistic update
     if (!friends.some(f => f.id === friend.id)) {
         setFriends(prev => [...prev, friend].sort((a, b) => a.name.localeCompare(b.name)));
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/friends`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                user_id: user.id,
+                friend_id: friend.id
+            }),
+        });
+
+        if (!res.ok) {
+            console.error("Failed to add friend");
+            // Revert if failed (optional, but good practice)
+            setFriends(prev => prev.filter(f => f.id !== friend.id));
+        }
+    } catch (error) {
+        console.error("Error adding friend:", error);
+        setFriends(prev => prev.filter(f => f.id !== friend.id));
     }
   };
 

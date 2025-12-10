@@ -254,21 +254,40 @@ function CreateChatroomDialog({ onCreateChatroom }: { onCreateChatroom: (name: s
 function AddFriendDialog({ onAddFriend, currentFriends, currentUser }: { onAddFriend: (user: User) => void; currentFriends: Friend[]; currentUser: User }) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
 
-  const availableUsers = useMemo(() => {
-    const friendIds = new Set(currentFriends.map(f => f.id));
-    return users.filter(user => user.id !== currentUser.id && !friendIds.has(user.id));
-  }, [currentFriends, currentUser]);
-  
-  const filteredUsers = useMemo(() => 
-    searchTerm ? availableUsers.filter(user => user.name.toLowerCase().includes(searchTerm.toLowerCase())) : availableUsers,
-    [availableUsers, searchTerm]
-  );
+  // Search users via API when searchTerm changes
+  React.useEffect(() => {
+    const searchUsers = async () => {
+        if (!searchTerm) {
+            setAvailableUsers([]);
+            return;
+        }
+
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        try {
+            const res = await fetch(`${API_URL}/users/search?query=${encodeURIComponent(searchTerm)}&user_id=${currentUser.id}`);
+            if (res.ok) {
+                const data = await res.json();
+                setAvailableUsers(data.data);
+            }
+        } catch (error) {
+            console.error("Error searching users", error);
+        }
+    };
+
+    const timeoutId = setTimeout(() => {
+        searchUsers();
+    }, 300); // Debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, currentUser.id]);
+
 
   const handleAdd = (user: User) => {
     onAddFriend(user);
-    // After adding, the user will be removed from `availableUsers`, re-triggering the memo.
-    // This provides instant feedback in the dialog.
+    // Remove from local state immediately to reflect UI change
+    setAvailableUsers(prev => prev.filter(u => u.id !== user.id));
   };
 
   return (
@@ -305,7 +324,7 @@ function AddFriendDialog({ onAddFriend, currentFriends, currentUser }: { onAddFr
         </div>
         <ScrollArea className="max-h-64 -mx-6 px-6">
           <div className="space-y-2 py-4">
-            {filteredUsers.length > 0 ? filteredUsers.map(user => (
+            {availableUsers.length > 0 ? availableUsers.map(user => (
               <div key={user.id} className="flex items-center justify-between p-2 rounded-md hover:bg-accent">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-8 w-8">
