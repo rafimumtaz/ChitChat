@@ -17,7 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { Chatroom, Friend, User } from "@/lib/data";
-import { users, loggedInUser } from "@/lib/data";
+import { users } from "@/lib/data";
 import { Hash, MessageSquare, Plus, Search, Users, UserPlus, X } from "lucide-react";
 import { UserNav } from "./user-nav";
 import React, { useMemo, useState } from "react";
@@ -30,6 +30,7 @@ interface ChatSidebarProps {
   onCreateChatroom: (name: string, topic: string) => void;
   onAddFriend: (friend: User) => void;
   onRemoveFriend: (friendId: string) => void;
+  user: User;
 }
 
 export function ChatSidebar({
@@ -39,7 +40,8 @@ export function ChatSidebar({
   onSelectChat,
   onCreateChatroom,
   onAddFriend,
-  onRemoveFriend
+  onRemoveFriend,
+  user
 }: ChatSidebarProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -60,7 +62,7 @@ export function ChatSidebar({
             <MessageSquare className="w-8 h-8 text-primary" />
             <h1 className="text-xl font-bold">Chitter Chatter</h1>
         </div>
-        <UserNav />
+        <UserNav user={user} />
       </div>
       <div className="p-4">
         <div className="relative">
@@ -94,7 +96,7 @@ export function ChatSidebar({
           <NavSection
             title="Friends"
             icon={<Users className="w-4 h-4" />}
-            action={<AddFriendDialog onAddFriend={onAddFriend} currentFriends={friends} />}
+            action={<AddFriendDialog onAddFriend={onAddFriend} currentFriends={friends} currentUser={user} />}
           >
             {filteredFriends.map((friend) => (
               <FriendItem key={friend.id} friend={friend} onRemoveFriend={onRemoveFriend} />
@@ -104,11 +106,11 @@ export function ChatSidebar({
       </ScrollArea>
       <div className="p-4 border-t flex items-center gap-3">
          <Avatar className="h-10 w-10 border-2 border-primary">
-            <AvatarImage src={loggedInUser.avatarUrl} alt={loggedInUser.name} />
-            <AvatarFallback>{loggedInUser.name.charAt(0)}</AvatarFallback>
+            <AvatarImage src={user.avatarUrl} alt={user.name} />
+            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
          </Avatar>
          <div className="flex-1">
-            <p className="font-semibold">{loggedInUser.name}</p>
+            <p className="font-semibold">{user.name}</p>
             <p className="text-sm text-muted-foreground">Online</p>
          </div>
       </div>
@@ -249,14 +251,14 @@ function CreateChatroomDialog({ onCreateChatroom }: { onCreateChatroom: (name: s
   );
 }
 
-function AddFriendDialog({ onAddFriend, currentFriends }: { onAddFriend: (user: User) => void; currentFriends: Friend[] }) {
+function AddFriendDialog({ onAddFriend, currentFriends, currentUser }: { onAddFriend: (user: User) => void; currentFriends: Friend[]; currentUser: User }) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
   const availableUsers = useMemo(() => {
     const friendIds = new Set(currentFriends.map(f => f.id));
-    return users.filter(user => user.id !== loggedInUser.id && !friendIds.has(user.id));
-  }, [currentFriends]);
+    return users.filter(user => user.id !== currentUser.id && !friendIds.has(user.id));
+  }, [currentFriends, currentUser]);
   
   const filteredUsers = useMemo(() => 
     searchTerm ? availableUsers.filter(user => user.name.toLowerCase().includes(searchTerm.toLowerCase())) : availableUsers,
