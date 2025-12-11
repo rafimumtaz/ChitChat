@@ -68,7 +68,7 @@ class TestFriendsAPI(unittest.TestCase):
                                content_type='application/json')
 
         self.assertEqual(response.status_code, 201)
-        self.assertIn("Friend added", response.get_json()['message'])
+        self.assertIn("Friend request sent", response.get_json()['message'])
 
     @patch('message_publisher.get_db_connection')
     def test_get_friends(self, mock_get_db):
