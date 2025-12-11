@@ -1,0 +1,7 @@
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 316-492-473
+(48999) wsgi starting up on http://127.0.0.1:5000
+(48999) accepted ('127.0.0.1', 48334)
+127.0.0.1 - - [11/Dec/2025 12:08:27] "GET /chatrooms?user_id=1 HTTP/1.1" 500 270 0.011837
+ === Application Server (Message Publisher & Auth) Started ===
