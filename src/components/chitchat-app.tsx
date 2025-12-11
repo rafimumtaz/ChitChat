@@ -223,8 +223,32 @@ export function ChitChatApp() {
     }
   };
 
-  const handleRemoveFriend = (friendId: string) => {
-    setFriends(prev => prev.filter(f => f.id !== friendId));
+  const handleRemoveFriend = async (friendId: string) => {
+    if (!confirm("Are you sure you want to remove this friend?")) return;
+
+    if (!user) return;
+
+    try {
+        const res = await fetch(`${API_URL}/friends/${friendId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                user_id: user.id
+            }),
+        });
+
+        if (res.ok) {
+            setFriends(prev => prev.filter(f => f.id !== friendId));
+        } else {
+            console.error("Failed to remove friend");
+            alert("Failed to remove friend");
+        }
+    } catch (error) {
+        console.error("Error removing friend:", error);
+        alert("Error removing friend");
+    }
   };
 
   const handleStartPrivateChat = async (friend: Friend) => {
