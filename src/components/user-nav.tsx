@@ -106,14 +106,6 @@ export function UserNav({ user }: UserNavProps) {
     <div className="flex items-center gap-1">
       <ThemeCustomizer />
       <Dialog open={openNotifications} onOpenChange={setOpenNotifications}>
-        <DialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                {notifications.length > 0 && (
-                    <span className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-red-600" />
-                )}
-            </Button>
-        </DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
                 <DialogTitle>Notifications</DialogTitle>
@@ -153,6 +145,9 @@ export function UserNav({ user }: UserNavProps) {
               <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint="woman profile" />
               <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
             </Avatar>
+            {notifications.length > 0 && (
+                <span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-600 border-2 border-background" />
+            )}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="end" forceMount>
@@ -174,9 +169,12 @@ export function UserNav({ user }: UserNavProps) {
               <Settings className="mr-2 h-4 w-4" />
               <span>Settings</span>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              <span>New Team</span>
+            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setOpenNotifications(true); }}>
+              <Bell className="mr-2 h-4 w-4" />
+              <span>Notifications</span>
+              {notifications.length > 0 && (
+                <span className="ml-auto flex h-2 w-2 rounded-full bg-red-600" />
+              )}
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
