@@ -161,13 +161,13 @@ function FriendItem({ friend, onRemoveFriend, onStartPrivateChat }: { friend: Fr
   
   return (
     <li 
-      className="w-full rounded-md transition-colors hover:bg-accent/50 cursor-pointer"
+      className="w-full rounded-md transition-colors hover:bg-accent/50 cursor-pointer relative"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={() => onStartPrivateChat(friend)}
     >
-       <div className="flex items-center w-full justify-start gap-3 h-12 px-2">
-        <div className="relative">
+       <div className="flex items-center w-full justify-start gap-3 h-12 px-2 overflow-hidden">
+        <div className="relative shrink-0">
           <Avatar className="h-8 w-8">
             <AvatarImage src={friend.avatarUrl} alt={friend.name} />
             <AvatarFallback>{friend.name.charAt(0)}</AvatarFallback>
@@ -176,7 +176,7 @@ function FriendItem({ friend, onRemoveFriend, onStartPrivateChat }: { friend: Fr
         </div>
         <span className="flex-1 truncate text-left">{friend.name}</span>
         {isHovered && (
-          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          <div className="absolute right-2 flex items-center gap-1 bg-accent/50 pl-2" onClick={(e) => e.stopPropagation()}>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>

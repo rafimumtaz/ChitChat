@@ -911,6 +911,34 @@ def invite_to_room():
         if conn:
             conn.close()
 
+@app.route('/friends/<friend_id>', methods=['DELETE'])
+def remove_friend(friend_id):
+    if not request.is_json:
+        return jsonify({"status": "error", "message": "Content-Type must be application/json"}), 400
+
+    data = request.get_json()
+    user_id = data.get('user_id')
+
+    if not user_id:
+        return jsonify({"status": "error", "message": "Missing user_id"}), 400
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Delete friendship (bidirectional check)
+        sql = "DELETE FROM friends WHERE (user_id = %s AND friend_id = %s) OR (user_id = %s AND friend_id = %s)"
+        cursor.execute(sql, (user_id, friend_id, friend_id, user_id))
+        conn.commit()
+
+        return jsonify({"status": "success", "message": "Friend removed successfully"}), 200
+    except pymysql.MySQLError as err:
+        return jsonify({"status": "error", "message": str(err)}), 500
+    finally:
+        if conn:
+            conn.close()
+
 if __name__ == '__main__':
     print(" === Application Server (Message Publisher & Auth) Started ===")
     socketio.run(app, debug=True, port=5000, allow_unsafe_werkzeug=True)
