@@ -70,15 +70,20 @@ CREATE TABLE `messages` (
 
 CREATE TABLE `notifications` (
   `notif_id` bigint NOT NULL AUTO_INCREMENT,
-  `message_id` bigint NOT NULL,
+  `type` enum('FRIEND_REQUEST','GROUP_INVITE','MESSAGE') COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'MESSAGE',
+  `sender_id` bigint NOT NULL,
   `receiver_id` bigint NOT NULL,
-  `status` enum('sent','failed') COLLATE utf8mb4_general_ci DEFAULT 'sent',
+  `reference_id` bigint DEFAULT NULL,
+  `message_id` bigint DEFAULT NULL,
+  `status` enum('sent','failed','read','unread') COLLATE utf8mb4_general_ci DEFAULT 'unread',
   `sent_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`notif_id`),
   KEY `message_id` (`message_id`),
   KEY `receiver_id` (`receiver_id`),
+  KEY `sender_id` (`sender_id`),
   CONSTRAINT `notif_message_fk` FOREIGN KEY (`message_id`) REFERENCES `messages` (`message_id`) ON DELETE CASCADE,
-  CONSTRAINT `notif_receiver_fk` FOREIGN KEY (`receiver_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
+  CONSTRAINT `notif_receiver_fk` FOREIGN KEY (`receiver_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
+  CONSTRAINT `notif_sender_fk` FOREIGN KEY (`sender_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -102,6 +107,7 @@ CREATE TABLE `room_members` (
 CREATE TABLE `friends` (
   `user_id` bigint NOT NULL,
   `friend_id` bigint NOT NULL,
+  `status` enum('PENDING','ACCEPTED') COLLATE utf8mb4_general_ci DEFAULT 'PENDING',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`user_id`,`friend_id`),
   KEY `friend_id` (`friend_id`),

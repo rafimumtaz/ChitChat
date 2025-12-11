@@ -603,27 +603,29 @@ def add_friend():
         if cursor.fetchone():
              return jsonify({"status": "error", "message": "Already friends"}), 409
 
-        # Insert friendship (bidirectional or unidirectional? Usually bidirectional in simple chat apps)
-        # Let's do bidirectional for simplicity so both see each other
-        sql = "INSERT INTO friends (user_id, friend_id) VALUES (%s, %s), (%s, %s)"
-        cursor.execute(sql, (user_id, friend_id, friend_id, user_id))
+        # Send Friend Request
+        # 1. Insert PENDING friendship
+        sql = "INSERT INTO friends (user_id, friend_id, status) VALUES (%s, %s, 'PENDING')"
+        cursor.execute(sql, (user_id, friend_id))
+
+        # 2. Create Notification
+        sql_notif = "INSERT INTO notifications (type, sender_id, receiver_id, reference_id, status) VALUES ('FRIEND_REQUEST', %s, %s, %s, 'unread')"
+        cursor.execute(sql_notif, (user_id, friend_id, user_id))
+
         conn.commit()
 
         # Emit event to the friend
-        # Need fetch user details to send useful data
-        cursor.execute("SELECT username, status FROM users WHERE user_id = %s", (user_id,))
-        adder = cursor.fetchone()
-        if adder:
-            socketio.emit('new_friend', {
-                "id": str(user_id),
-                "name": adder[0], # Tuple result from standard cursor if not dict=True?
-                                  # Wait, get_db_connection().cursor() is default tuple.
-                                  # check: line 592 is cursor = conn.cursor() (no dict)
-                "avatarUrl": f"https://ui-avatars.com/api/?name={adder[0]}",
-                "online": adder[1] == 'online'
-            }, room=f"user_{friend_id}")
+        cursor.execute("SELECT username FROM users WHERE user_id = %s", (user_id,))
+        sender = cursor.fetchone()
+        sender_name = sender[0] if sender else "Unknown"
 
-        return jsonify({"status": "success", "message": "Friend added successfully"}), 201
+        socketio.emit('new_notification', {
+            "type": 'FRIEND_REQUEST',
+            "sender_name": sender_name,
+            "message": f"{sender_name} sent you a friend request"
+        }, room=f"user_{friend_id}")
+
+        return jsonify({"status": "success", "message": "Friend request sent"}), 201
     except mysql.connector.Error as err:
         return jsonify({"status": "error", "message": str(err)}), 500
     finally:
@@ -645,9 +647,14 @@ def get_friends():
             SELECT u.user_id, u.username, u.status
             FROM users u
             JOIN friends f ON u.user_id = f.friend_id
-            WHERE f.user_id = %s
+            WHERE f.user_id = %s AND f.status = 'ACCEPTED'
+            UNION
+            SELECT u.user_id, u.username, u.status
+            FROM users u
+            JOIN friends f ON u.user_id = f.user_id
+            WHERE f.friend_id = %s AND f.status = 'ACCEPTED'
         """
-        cursor.execute(sql, (user_id,))
+        cursor.execute(sql, (user_id, user_id))
         friends = cursor.fetchall()
 
         formatted_friends = []
@@ -763,6 +770,139 @@ def kick_member(room_id):
 
         return jsonify({"status": "success", "message": "User kicked successfully"}), 200
 
+    except mysql.connector.Error as err:
+        return jsonify({"status": "error", "message": str(err)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/notifications', methods=['GET'])
+def get_notifications():
+    user_id = request.args.get('user_id')
+    if not user_id:
+        return jsonify({"status": "error", "message": "Missing user_id"}), 400
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        sql = """
+            SELECT n.notif_id, n.type, n.reference_id, n.status, u.username as sender_name, c.room_name
+            FROM notifications n
+            JOIN users u ON n.sender_id = u.user_id
+            LEFT JOIN chatrooms c ON n.reference_id = c.room_id AND n.type = 'GROUP_INVITE'
+            WHERE n.receiver_id = %s AND n.status != 'read'
+            ORDER BY n.sent_at DESC
+        """
+        cursor.execute(sql, (user_id,))
+        notifs = cursor.fetchall()
+
+        return jsonify({"status": "success", "data": notifs}), 200
+    except mysql.connector.Error as err:
+        return jsonify({"status": "error", "message": str(err)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/notifications/<notif_id>/respond', methods=['POST'])
+def respond_notification(notif_id):
+    if not request.is_json:
+        return jsonify({"status": "error", "message": "Content-Type must be application/json"}), 400
+
+    data = request.get_json()
+    action = data.get('action') # ACCEPT or REJECT
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Get notification details
+        cursor.execute("SELECT * FROM notifications WHERE notif_id = %s", (notif_id,))
+        notif = cursor.fetchone()
+
+        if not notif:
+            return jsonify({"status": "error", "message": "Notification not found"}), 404
+
+        if action == 'ACCEPT':
+            if notif['type'] == 'FRIEND_REQUEST':
+                # Update friendship status to ACCEPTED
+                # Find the pending record
+                sql_friend = "UPDATE friends SET status = 'ACCEPTED' WHERE user_id = %s AND friend_id = %s"
+                cursor.execute(sql_friend, (notif['sender_id'], notif['receiver_id']))
+
+                # Emit new friend event so list updates
+                cursor.execute("SELECT username FROM users WHERE user_id = %s", (notif['sender_id'],))
+                sender = cursor.fetchone()
+                sender_name = sender['username']
+
+                socketio.emit('new_friend', {
+                    "id": str(notif['sender_id']),
+                    "name": sender_name,
+                    "avatarUrl": f"https://ui-avatars.com/api/?name={sender_name}",
+                    "online": True # Approximation
+                }, room=f"user_{notif['receiver_id']}")
+
+            elif notif['type'] == 'GROUP_INVITE':
+                # Add to room members
+                sql_member = "INSERT INTO room_members (room_id, user_id) VALUES (%s, %s)"
+                cursor.execute(sql_member, (notif['reference_id'], notif['receiver_id']))
+
+                # Emit joined room event
+                socketio.emit('added_to_room', {
+                    "room_id": str(notif['reference_id'])
+                }, room=f"user_{notif['receiver_id']}")
+
+        # Mark notification as read (or delete)
+        cursor.execute("UPDATE notifications SET status = 'read' WHERE notif_id = %s", (notif_id,))
+
+        conn.commit()
+        return jsonify({"status": "success", "message": f"Request {action.lower()}ed"}), 200
+
+    except mysql.connector.Error as err:
+        return jsonify({"status": "error", "message": str(err)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/chatrooms/invite', methods=['POST'])
+def invite_to_room():
+    if not request.is_json:
+        return jsonify({"status": "error", "message": "Content-Type must be application/json"}), 400
+
+    data = request.get_json()
+    room_id = data.get('room_id')
+    user_id = data.get('user_id') # invitee
+    sender_id = data.get('sender_id') # inviter
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Create Notification
+        sql = "INSERT INTO notifications (type, sender_id, receiver_id, reference_id, status) VALUES ('GROUP_INVITE', %s, %s, %s, 'unread')"
+        cursor.execute(sql, (sender_id, user_id, room_id))
+        conn.commit()
+
+        # Emit event
+        cursor.execute("SELECT username FROM users WHERE user_id = %s", (sender_id,))
+        sender = cursor.fetchone()
+        sender_name = sender[0] if sender else "Unknown"
+
+        # Get room name
+        cursor.execute("SELECT room_name FROM chatrooms WHERE room_id = %s", (room_id,))
+        room = cursor.fetchone()
+        room_name = room[0] if room else "Chatroom"
+
+        socketio.emit('new_notification', {
+            "type": 'GROUP_INVITE',
+            "sender_name": sender_name,
+            "message": f"{sender_name} invited you to {room_name}"
+        }, room=f"user_{user_id}")
+
+        return jsonify({"status": "success", "message": "Invitation sent"}), 200
     except mysql.connector.Error as err:
         return jsonify({"status": "error", "message": str(err)}), 500
     finally:
