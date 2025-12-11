@@ -227,6 +227,33 @@ def login():
         if conn:
             conn.close()
 
+@app.route('/logout', methods=['POST'])
+def logout():
+    if not request.is_json:
+        return jsonify({"status": "error", "message": "Content-Type must be application/json"}), 400
+
+    data = request.get_json()
+    user_id = data.get('user_id')
+
+    if not user_id:
+         return jsonify({"status": "error", "message": "Missing user_id"}), 400
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        update_sql = "UPDATE users SET status = 'offline' WHERE user_id = %s"
+        cursor.execute(update_sql, (user_id,))
+        conn.commit()
+
+        return jsonify({"status": "success", "message": "Logged out successfully"}), 200
+    except mysql.connector.Error as err:
+        return jsonify({"status": "error", "message": str(err)}), 500
+    finally:
+        if conn:
+            conn.close()
+
 # Chatroom Endpoints
 @app.route('/create-room', methods=['POST'])
 def create_room():

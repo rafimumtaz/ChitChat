@@ -28,7 +28,18 @@ export function UserNav({ user }: UserNavProps) {
     return name.split(' ').map(n => n[0]).join('');
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    try {
+        await fetch(`${API_URL}/logout`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: user.id })
+        });
+    } catch (error) {
+        console.error("Logout failed:", error);
+    }
+
     localStorage.removeItem("user");
     router.push("/login");
   }
