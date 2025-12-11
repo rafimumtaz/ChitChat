@@ -639,6 +639,109 @@ def get_friends():
         if conn:
             conn.close()
 
+@app.route('/room/<room_id>/info', methods=['GET'])
+def get_room_info(room_id):
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # 1. Fetch Room Info & Admin
+        sql_room = """
+            SELECT c.room_name, c.created_by, u.username as admin_name
+            FROM chatrooms c
+            LEFT JOIN users u ON c.created_by = u.user_id
+            WHERE c.room_id = %s
+        """
+        cursor.execute(sql_room, (room_id,))
+        room = cursor.fetchone()
+
+        if not room:
+            return jsonify({"status": "error", "message": "Room not found"}), 404
+
+        # 2. Fetch Members
+        sql_members = """
+            SELECT u.user_id, u.username, u.status
+            FROM room_members rm
+            JOIN users u ON rm.user_id = u.user_id
+            WHERE rm.room_id = %s
+        """
+        cursor.execute(sql_members, (room_id,))
+        members = cursor.fetchall()
+
+        formatted_members = []
+        for m in members:
+            formatted_members.append({
+                "id": str(m['user_id']),
+                "name": m['username'],
+                "avatarUrl": f"https://ui-avatars.com/api/?name={m['username']}",
+                "online": m['status'] == 'online'
+            })
+
+        return jsonify({
+            "status": "success",
+            "data": {
+                "room_name": room['room_name'],
+                "created_by": str(room['created_by']),
+                "admin_name": room['admin_name'],
+                "members": formatted_members
+            }
+        }), 200
+
+    except mysql.connector.Error as err:
+        return jsonify({"status": "error", "message": str(err)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/room/<room_id>/kick', methods=['POST'])
+def kick_member(room_id):
+    if not request.is_json:
+        return jsonify({"status": "error", "message": "Content-Type must be application/json"}), 400
+
+    data = request.get_json()
+    user_id_to_kick = data.get('user_id')
+    current_user_id = data.get('current_user_id')
+
+    if not user_id_to_kick or not current_user_id:
+        return jsonify({"status": "error", "message": "Missing user_id or current_user_id"}), 400
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # 1. Verify Admin Status
+        sql_room = "SELECT created_by FROM chatrooms WHERE room_id = %s"
+        cursor.execute(sql_room, (room_id,))
+        room = cursor.fetchone()
+
+        if not room:
+            return jsonify({"status": "error", "message": "Room not found"}), 404
+
+        # Check authorization: Requester must be the creator
+        if str(room['created_by']) != str(current_user_id):
+            return jsonify({"status": "error", "message": "Unauthorized: Only admin can kick members"}), 403
+
+        # 2. Delete Member
+        sql_delete = "DELETE FROM room_members WHERE room_id = %s AND user_id = %s"
+        cursor.execute(sql_delete, (room_id, user_id_to_kick))
+        conn.commit()
+
+        # Notify the kicked user and others
+        socketio.emit('member_kicked', {
+            "room_id": str(room_id),
+            "user_id": str(user_id_to_kick)
+        }, room=f"room_{room_id}")
+
+        return jsonify({"status": "success", "message": "User kicked successfully"}), 200
+
+    except mysql.connector.Error as err:
+        return jsonify({"status": "error", "message": str(err)}), 500
+    finally:
+        if conn:
+            conn.close()
+
 if __name__ == '__main__':
     print(" === Application Server (Message Publisher & Auth) Started ===")
     socketio.run(app, debug=True, port=5000, allow_unsafe_werkzeug=True)

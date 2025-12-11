@@ -11,7 +11,7 @@ import React, { useState, useRef, useEffect } from "react";
 
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { UserPlus } from "lucide-react";
+import { UserPlus, UserMinus } from "lucide-react";
 import { users } from "@/lib/data";
 
 interface ChatAreaProps {
@@ -60,10 +60,7 @@ export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser
             {(selectedChat.type === 'group' || !selectedChat.type) && (
                 <AddMemberDialog onAddMember={onAddMember} currentUser={currentUser} />
             )}
-            <Button variant="ghost" size="icon">
-              <Info className="w-5 h-5" />
-              <span className="sr-only">Chatroom Info</span>
-            </Button>
+            <RoomInfoDialog selectedChat={selectedChat} currentUser={currentUser} />
         </div>
       </header>
 
@@ -171,6 +168,114 @@ function AddMemberDialog({ onAddMember, currentUser }: { onAddMember: (userId: s
             )) : <p className="text-sm text-center text-muted-foreground py-4">No users found.</p>}
           </div>
         </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function RoomInfoDialog({ selectedChat, currentUser }: { selectedChat: Chatroom; currentUser: User }) {
+  const [open, setOpen] = useState(false);
+  const [info, setInfo] = useState<{ room_name: string; admin_name: string; created_by: string; members: User[] } | null>(null);
+
+  const fetchInfo = async () => {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      try {
+          const res = await fetch(`${API_URL}/room/${selectedChat.id}/info`);
+          if (res.ok) {
+              const data = await res.json();
+              setInfo(data.data);
+          }
+      } catch (error) {
+          console.error("Error fetching room info:", error);
+      }
+  };
+
+  const handleKick = async (userId: string) => {
+      if (!confirm("Are you sure you want to remove this user?")) return;
+
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      try {
+          const res = await fetch(`${API_URL}/room/${selectedChat.id}/kick`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  user_id: userId,
+                  current_user_id: currentUser.id
+              })
+          });
+
+          if (res.ok) {
+              setInfo(prev => prev ? { ...prev, members: prev.members.filter(m => m.id !== userId) } : null);
+          } else {
+              alert("Failed to kick user.");
+          }
+      } catch (error) {
+          console.error("Error kicking user:", error);
+      }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(val) => { setOpen(val); if(val) fetchInfo(); }}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <Info className="w-5 h-5" />
+          <span className="sr-only">Chatroom Info</span>
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Room Info</DialogTitle>
+          <DialogDescription>
+             Details about this chatroom.
+          </DialogDescription>
+        </DialogHeader>
+        {info ? (
+            <div className="py-4 space-y-4">
+                <div>
+                    <h3 className="font-semibold text-lg">{info.room_name}</h3>
+                    <p className="text-sm text-muted-foreground">Created By: {info.admin_name}</p>
+                </div>
+                <div>
+                    <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wider mb-2">Members ({info.members.length})</h4>
+                    <ScrollArea className="max-h-64 -mx-6 px-6">
+                        <div className="space-y-2">
+                            {info.members.map(member => (
+                                <div key={member.id} className="flex items-center justify-between p-2 rounded-md hover:bg-accent/50">
+                                    <div className="flex items-center gap-3">
+                                        <Avatar className="h-8 w-8">
+                                            <AvatarImage src={member.avatarUrl} alt={member.name} />
+                                            <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-medium">{member.name}</span>
+                                                {member.id === info.created_by && (
+                                                    <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-semibold">(Admin)</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {/* Kick Button: Show if current user is admin AND target is not themselves */}
+                                    {info.created_by === currentUser.id && member.id !== currentUser.id && (
+                                        <Button
+                                            variant="destructive"
+                                            size="icon"
+                                            className="h-7 w-7"
+                                            onClick={() => handleKick(member.id)}
+                                            title="Kick User"
+                                        >
+                                            <UserMinus className="w-4 h-4" />
+                                        </Button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </ScrollArea>
+                </div>
+            </div>
+        ) : (
+            <div className="py-8 text-center text-muted-foreground">Loading...</div>
+        )}
       </DialogContent>
     </Dialog>
   );
