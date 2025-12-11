@@ -180,18 +180,6 @@ function FriendItem({ friend, onRemoveFriend, onStartPrivateChat }: { friend: Fr
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onStartPrivateChat(friend)}>
-                    <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Message</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onRemoveFriend(friend.id)}>
                     <X className="w-4 h-4 text-muted-foreground" />
                   </Button>
