@@ -128,22 +128,29 @@ function AddMemberDialog({ onAddMember, currentUser }: { onAddMember: (userId: s
     return () => clearTimeout(timeoutId);
   }, [searchTerm, currentUser.id]);
 
-  const handleAdd = (user: User) => {
+  const handleInvite = async (user: User) => {
+    // Call invite logic (which was passed as onAddMember prop, but logic should be updated to /invite)
+    // The prop name is onAddMember but implementation in ChitchatApp calls /chatrooms/add-member.
+    // We will update the logic in the parent component to call the invite endpoint, or update backend add-member to invite.
+    // The previous backend update made /invite endpoint.
+    // Let's assume onAddMember prop now calls the Invite Logic or we rename it.
+    // For minimal frontend changes, we use the existing prop but rename UI text.
     onAddMember(user.id);
     setOpen(false);
+    alert(`Invitation sent to ${user.name}`);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" title="Add Member">
+        <Button variant="ghost" size="icon" title="Invite Member">
           <UserPlus className="w-5 h-5" />
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add Member to Chatroom</DialogTitle>
-          <DialogDescription>Search for users to add to this chatroom.</DialogDescription>
+          <DialogTitle>Invite to Group</DialogTitle>
+          <DialogDescription>Search for users to invite to this chatroom.</DialogDescription>
         </DialogHeader>
         <div className="pt-4">
             <Input
@@ -163,7 +170,7 @@ function AddMemberDialog({ onAddMember, currentUser }: { onAddMember: (userId: s
                   </Avatar>
                   <span>{user.name}</span>
                 </div>
-                <Button size="sm" onClick={() => handleAdd(user)}>Add</Button>
+                <Button size="sm" onClick={() => handleInvite(user)}>Invite</Button>
               </div>
             )) : <p className="text-sm text-center text-muted-foreground py-4">No users found.</p>}
           </div>
@@ -214,6 +221,44 @@ function RoomInfoDialog({ selectedChat, currentUser }: { selectedChat: Chatroom;
       }
   };
 
+  const handleDeleteRoom = async () => {
+      if (!confirm("Are you sure you want to delete this room? This cannot be undone.")) return;
+
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      try {
+          const res = await fetch(`${API_URL}/room/${selectedChat.id}`, {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ current_user_id: currentUser.id })
+          });
+          if (res.ok) {
+              setOpen(false);
+              window.location.reload(); // Refresh to update list
+          }
+      } catch (error) {
+          console.error("Error deleting room", error);
+      }
+  };
+
+  const handleClearChat = async () => {
+      if (!confirm("Are you sure you want to clear the chat history?")) return;
+
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      try {
+          const res = await fetch(`${API_URL}/room/${selectedChat.id}/messages`, {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ current_user_id: currentUser.id })
+          });
+          if (res.ok) {
+              alert("Chat cleared.");
+              setOpen(false);
+          }
+      } catch (error) {
+          console.error("Error clearing chat", error);
+      }
+  };
+
   return (
     <Dialog open={open} onOpenChange={(val) => { setOpen(val); if(val) fetchInfo(); }}>
       <DialogTrigger asChild>
@@ -235,6 +280,19 @@ function RoomInfoDialog({ selectedChat, currentUser }: { selectedChat: Chatroom;
                     <h3 className="font-semibold text-lg">{info.room_name}</h3>
                     <p className="text-sm text-muted-foreground">Created By: {info.admin_name}</p>
                 </div>
+
+                {/* Admin Actions */}
+                {info.created_by === currentUser.id && (
+                    <div className="flex gap-2">
+                        <Button variant="destructive" size="sm" onClick={handleDeleteRoom} className="flex-1">
+                            Delete Room
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={handleClearChat} className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200">
+                            Clear Chat
+                        </Button>
+                    </div>
+                )}
+
                 <div>
                     <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wider mb-2">Members ({info.members.length})</h4>
                     <ScrollArea className="max-h-64 -mx-6 px-6">

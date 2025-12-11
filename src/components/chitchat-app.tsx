@@ -296,24 +296,26 @@ export function ChitChatApp() {
   };
 
   const handleAddMember = async (userId: string) => {
-    if (!selectedChat) return;
+    if (!selectedChat || !user) return;
     try {
-        const res = await fetch(`${API_URL}/chatrooms/add-member`, {
+        const res = await fetch(`${API_URL}/chatrooms/invite`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 room_id: selectedChat.id,
-                user_id: userId
+                user_id: userId,
+                sender_id: user.id
             })
         });
         if (!res.ok) {
-            console.error("Failed to add member");
-            alert("Failed to add member");
+            console.error("Failed to invite member");
+            alert("Failed to invite member");
         } else {
-            alert("Member added successfully");
+            // Frontend updates are handled via socket events 'new_notification' to the invitee
+            // The sender gets a success alert from the dialog component
         }
     } catch (error) {
-        console.error("Error adding member:", error);
+        console.error("Error inviting member:", error);
     }
   };
 
