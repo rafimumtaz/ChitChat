@@ -3,7 +3,8 @@ import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pika
-import mysql.connector
+import pymysql
+import pymysql.cursors
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
@@ -23,12 +24,13 @@ DB_PASS = os.getenv("DB_PASS", "")
 DB_NAME = os.getenv("DB_NAME", "chat_distribution_db")
 
 def get_db_connection():
-    return mysql.connector.connect(
+    return pymysql.connect(
         host=DB_HOST,
         port=DB_PORT,
         user=DB_USER,
         password=DB_PASS,
-        database=DB_NAME
+        database=DB_NAME,
+        cursorclass=pymysql.cursors.DictCursor
     )
 
 def publish_message(message_data):
@@ -100,7 +102,7 @@ def send_message():
         # Ideally, we should fetch to be secure/accurate.
         conn = get_db_connection()
         try:
-             cursor = conn.cursor(dictionary=True)
+             cursor = conn.cursor(pymysql.cursors.DictCursor)
              cursor.execute("SELECT username FROM users WHERE user_id = %s", (data['sender_id'],))
              sender_user = cursor.fetchone()
              sender_name = sender_user['username'] if sender_user else "Unknown"
@@ -176,7 +178,7 @@ def register():
         conn.commit()
 
         return jsonify({"status": "success", "message": "User registered successfully"}), 201
-    except mysql.connector.Error as err:
+    except pymysql.MySQLError as err:
         return jsonify({"status": "error", "message": str(err)}), 500
     finally:
         if conn:
@@ -197,7 +199,7 @@ def login():
     conn = None
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
 
         sql = "SELECT * FROM users WHERE email = %s"
         cursor.execute(sql, (email,))
@@ -221,7 +223,7 @@ def login():
             }), 200
         else:
             return jsonify({"status": "error", "message": "Invalid credentials"}), 401
-    except mysql.connector.Error as err:
+    except pymysql.MySQLError as err:
         return jsonify({"status": "error", "message": str(err)}), 500
     finally:
         if conn:
@@ -248,7 +250,7 @@ def logout():
         conn.commit()
 
         return jsonify({"status": "success", "message": "Logged out successfully"}), 200
-    except mysql.connector.Error as err:
+    except pymysql.MySQLError as err:
         return jsonify({"status": "error", "message": str(err)}), 500
     finally:
         if conn:
@@ -271,7 +273,7 @@ def create_room():
     conn = None
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
 
         # 1. Insert into chatrooms
         sql_room = "INSERT INTO chatrooms (room_name, created_by, type) VALUES (%s, %s, %s)"
@@ -294,7 +296,7 @@ def create_room():
                 "created_by": created_by
             }
         }), 201
-    except mysql.connector.Error as err:
+    except pymysql.MySQLError as err:
         if conn:
             conn.rollback()
         return jsonify({"status": "error", "message": str(err)}), 500
@@ -317,7 +319,7 @@ def start_private_chat():
     conn = None
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
 
         # 1. Check if a direct room already exists
         # We find a room of type 'direct' where both users are members.
@@ -377,7 +379,7 @@ def start_private_chat():
                 "type": 'direct'
             }
         }), 201
-    except mysql.connector.Error as err:
+    except pymysql.MySQLError as err:
         if conn:
             conn.rollback()
         return jsonify({"status": "error", "message": str(err)}), 500
@@ -419,7 +421,7 @@ def add_chatroom_member():
         }, room=f"user_{user_id}")
 
         return jsonify({"status": "success", "message": "Member added successfully"}), 200
-    except mysql.connector.Error as err:
+    except pymysql.MySQLError as err:
         return jsonify({"status": "error", "message": str(err)}), 500
     finally:
         if conn:
@@ -432,7 +434,7 @@ def get_chatrooms():
     conn = None
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
 
         if user_id:
             # Get rooms where user is a member
@@ -481,7 +483,7 @@ def get_chatrooms():
             "status": "success",
             "data": formatted_chatrooms
         }), 200
-    except mysql.connector.Error as err:
+    except pymysql.MySQLError as err:
         return jsonify({"status": "error", "message": str(err)}), 500
     finally:
         if conn:
@@ -496,7 +498,7 @@ def get_messages():
     conn = None
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
 
         # Join with users to get sender name
         sql = """
@@ -524,7 +526,7 @@ def get_messages():
             })
 
         return jsonify({"status": "success", "data": formatted_messages}), 200
-    except mysql.connector.Error as err:
+    except pymysql.MySQLError as err:
         return jsonify({"status": "error", "message": str(err)}), 500
     finally:
         if conn:
@@ -543,7 +545,7 @@ def search_users():
     conn = None
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
 
         # Search users not strictly matching query but excluding current user
         # Conditionally exclude friends
@@ -574,7 +576,7 @@ def search_users():
              })
 
         return jsonify({"status": "success", "data": formatted_users}), 200
-    except mysql.connector.Error as err:
+    except pymysql.MySQLError as err:
         return jsonify({"status": "error", "message": str(err)}), 500
     finally:
         if conn:
@@ -626,7 +628,7 @@ def add_friend():
         }, room=f"user_{friend_id}")
 
         return jsonify({"status": "success", "message": "Friend request sent"}), 201
-    except mysql.connector.Error as err:
+    except pymysql.MySQLError as err:
         return jsonify({"status": "error", "message": str(err)}), 500
     finally:
         if conn:
@@ -641,7 +643,7 @@ def get_friends():
     conn = None
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
 
         sql = """
             SELECT u.user_id, u.username, u.status
@@ -667,7 +669,7 @@ def get_friends():
              })
 
         return jsonify({"status": "success", "data": formatted_friends}), 200
-    except mysql.connector.Error as err:
+    except pymysql.MySQLError as err:
         return jsonify({"status": "error", "message": str(err)}), 500
     finally:
         if conn:
@@ -678,7 +680,7 @@ def get_room_info(room_id):
     conn = None
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
 
         # 1. Fetch Room Info & Admin
         sql_room = """
@@ -722,7 +724,7 @@ def get_room_info(room_id):
             }
         }), 200
 
-    except mysql.connector.Error as err:
+    except pymysql.MySQLError as err:
         return jsonify({"status": "error", "message": str(err)}), 500
     finally:
         if conn:
@@ -743,7 +745,7 @@ def kick_member(room_id):
     conn = None
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
 
         # 1. Verify Admin Status
         sql_room = "SELECT created_by FROM chatrooms WHERE room_id = %s"
@@ -770,7 +772,7 @@ def kick_member(room_id):
 
         return jsonify({"status": "success", "message": "User kicked successfully"}), 200
 
-    except mysql.connector.Error as err:
+    except pymysql.MySQLError as err:
         return jsonify({"status": "error", "message": str(err)}), 500
     finally:
         if conn:
@@ -785,7 +787,7 @@ def get_notifications():
     conn = None
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
 
         sql = """
             SELECT n.notif_id, n.type, n.reference_id, n.status, u.username as sender_name, c.room_name
@@ -799,7 +801,7 @@ def get_notifications():
         notifs = cursor.fetchall()
 
         return jsonify({"status": "success", "data": notifs}), 200
-    except mysql.connector.Error as err:
+    except pymysql.MySQLError as err:
         return jsonify({"status": "error", "message": str(err)}), 500
     finally:
         if conn:
@@ -816,7 +818,7 @@ def respond_notification(notif_id):
     conn = None
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
 
         # Get notification details
         cursor.execute("SELECT * FROM notifications WHERE notif_id = %s", (notif_id,))
@@ -860,7 +862,7 @@ def respond_notification(notif_id):
         conn.commit()
         return jsonify({"status": "success", "message": f"Request {action.lower()}ed"}), 200
 
-    except mysql.connector.Error as err:
+    except pymysql.MySQLError as err:
         return jsonify({"status": "error", "message": str(err)}), 500
     finally:
         if conn:
@@ -903,7 +905,7 @@ def invite_to_room():
         }, room=f"user_{user_id}")
 
         return jsonify({"status": "success", "message": "Invitation sent"}), 200
-    except mysql.connector.Error as err:
+    except pymysql.MySQLError as err:
         return jsonify({"status": "error", "message": str(err)}), 500
     finally:
         if conn:
