@@ -93,9 +93,10 @@ _pool = MySQLPool(size=POOL_SIZE)
 # We intentionally do a no-op in ON DUPLICATE KEY UPDATE (keep existing row intact).
 INSERT_SQL = """
 INSERT INTO messages (
-    publisher_msg_id, room_id, sender_id, seq, content, created_at, broker_received_at
+    publisher_msg_id, room_id, sender_id, seq, content, created_at, broker_received_at,
+    attachment_url, attachment_type, original_name
 ) VALUES (
-    %s, %s, %s, %s, %s, FROM_UNIXTIME(%s), NOW()
+    %s, %s, %s, %s, %s, FROM_UNIXTIME(%s), NOW(), %s, %s, %s
 )
 ON DUPLICATE KEY UPDATE
     broker_received_at = broker_received_at;
@@ -140,6 +141,9 @@ def write_message(msg):
                 int(msg["seq"]) if msg.get("seq") is not None else None,
                 str(msg["content"]),
                 float(ts),
+                msg.get("attachment_url"),
+                msg.get("attachment_type"),
+                msg.get("original_name")
             )
             cur.execute(INSERT_SQL, params)
             conn.commit()

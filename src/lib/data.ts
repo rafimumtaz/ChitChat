@@ -10,6 +10,9 @@ export type Message = {
   content: string;
   timestamp: string;
   sender: User;
+  attachment_url?: string;
+  attachment_type?: string;
+  original_name?: string;
 };
 
 export type Chatroom = {
