@@ -1,14 +1,16 @@
 import json
 import os
-from flask import Flask, request, jsonify
+import uuid
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import pika
 import pymysql
 import pymysql.cursors
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 CORS(app)  # Enable CORS for all routes
 socketio = SocketIO(app, cors_allowed_origins="*")
 
@@ -70,6 +72,42 @@ def publish_message(message_data):
         print(f" [!] Error umum saat menerbitkan pesan: {e}")
         return False
 
+# File Upload Endpoint
+@app.route('/api/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({"status": "error", "message": "No file part"}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"status": "error", "message": "No selected file"}), 400
+
+    if file:
+        filename = secure_filename(file.filename)
+        # Generate unique filename
+        unique_filename = f"{uuid.uuid4()}_{filename}"
+        upload_folder = os.path.join(app.static_folder, 'uploads')
+        if not os.path.exists(upload_folder):
+            os.makedirs(upload_folder)
+
+        file.save(os.path.join(upload_folder, unique_filename))
+
+        # URL for frontend access
+        # Assuming frontend is on same domain or we return full path?
+        # Flask is serving static, so relative path from root or full URL.
+        # Since frontend runs on port 3000 and backend on 5000, usually we need full URL if serving static.
+        # But we can just return relative path and let frontend prepend API_URL if served by Flask.
+        # Or better, return full URL.
+
+        file_url = f"/static/uploads/{unique_filename}"
+
+        return jsonify({
+            "status": "success",
+            "file_url": file_url,
+            "file_type": file.content_type,
+            "original_name": filename
+        }), 201
+
 # API Endpoint (Application Layer)
 @app.route('/send-message', methods=['POST'])
 def send_message():
@@ -88,11 +126,12 @@ def send_message():
 
     # Add optional fields if missing
     if 'publisher_msg_id' not in data:
-         import uuid
          data['publisher_msg_id'] = str(uuid.uuid4())
     if 'seq' not in data:
          data['seq'] = 0
 
+    # File attachments
+    # data can have attachment_url, attachment_type, original_name from frontend if uploaded first
 
     # Panggil fungsi publisher
     if publish_message(data):
@@ -117,7 +156,10 @@ def send_message():
                     "avatarUrl": f"https://ui-avatars.com/api/?name={sender_name}",
                     "online": True
                 },
-                "room_id": str(data['room_id'])
+                "room_id": str(data['room_id']),
+                "attachment_url": data.get('attachment_url'),
+                "attachment_type": data.get('attachment_type'),
+                "original_name": data.get('original_name')
              }
              socketio.emit('new_message', socket_message, room=f"room_{data['room_id']}")
         except Exception as e:
@@ -616,7 +658,8 @@ def get_messages():
 
         # Join with users to get sender name
         sql = """
-            SELECT m.message_id, m.content, m.created_at, m.sender_id, u.username
+            SELECT m.message_id, m.content, m.created_at, m.sender_id, u.username,
+                   m.attachment_url, m.attachment_type, m.original_name
             FROM messages m
             JOIN users u ON m.sender_id = u.user_id
             WHERE m.room_id = %s
@@ -636,7 +679,10 @@ def get_messages():
                     "name": msg['username'],
                     "avatarUrl": f"https://ui-avatars.com/api/?name={msg['username']}",
                     "online": True
-                }
+                },
+                "attachment_url": msg.get('attachment_url'),
+                "attachment_type": msg.get('attachment_type'),
+                "original_name": msg.get('original_name')
             })
 
         return jsonify({"status": "success", "data": formatted_messages}), 200

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Chatroom, Message, User } from "@/lib/data";
 import { cn } from "@/lib/utils";
-import { Info, SendHorizontal, Smile } from "lucide-react";
+import { Info, SendHorizontal, Smile, Paperclip, X, FileIcon, Loader2 } from "lucide-react";
 import React, { useState, useRef, useEffect } from "react";
 
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -16,15 +16,18 @@ import { users } from "@/lib/data";
 
 interface ChatAreaProps {
   selectedChat: Chatroom;
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, attachment?: { url: string, type: string, name: string }) => void;
   onAddMember: (userId: string) => void;
   currentUser: User;
 }
 
 export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser }: ChatAreaProps) {
   const [newMessage, setNewMessage] = useState("");
+  const [pendingAttachment, setPendingAttachment] = useState<{ url: string, type: string, name: string } | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
       messagesEndRef.current?.scrollIntoView({ behavior });
@@ -43,10 +46,48 @@ export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newMessage.trim() === "") return;
+    if (newMessage.trim() === "" && !pendingAttachment) return;
 
-    onSendMessage(newMessage);
+    onSendMessage(newMessage, pendingAttachment || undefined);
     setNewMessage("");
+    setPendingAttachment(null);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+          const file = e.target.files[0];
+          setIsUploading(true);
+
+          const formData = new FormData();
+          formData.append('file', file);
+
+          const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+          try {
+              const res = await fetch(`${API_URL}/api/upload`, {
+                  method: 'POST',
+                  body: formData
+              });
+
+              if (res.ok) {
+                  const data = await res.json();
+                  setPendingAttachment({
+                      url: data.file_url, // Backend should return relative or full path. If relative, prepend API_URL if needed, but static is served by backend.
+                      type: data.file_type,
+                      name: data.original_name
+                  });
+              } else {
+                  console.error("Upload failed");
+                  alert("Failed to upload file.");
+              }
+          } catch (error) {
+              console.error("Error uploading file:", error);
+              alert("Error uploading file.");
+          } finally {
+              setIsUploading(false);
+              if (fileInputRef.current) fileInputRef.current.value = "";
+          }
+      }
   };
 
   return (
@@ -74,18 +115,50 @@ export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser
       </ScrollArea>
       
       <footer className="p-4 border-t bg-card">
+        {pendingAttachment && (
+            <div className="flex items-center gap-2 p-2 mb-2 bg-accent/30 rounded-md border text-sm max-w-fit">
+                {pendingAttachment.type.startsWith('image/') ? (
+                    <div className="h-10 w-10 relative overflow-hidden rounded">
+                         {/* We need full URL if backend is different port */}
+                         <img src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${pendingAttachment.url}`} alt="Preview" className="object-cover h-full w-full" />
+                    </div>
+                ) : (
+                    <FileIcon className="h-5 w-5 text-muted-foreground" />
+                )}
+                <span className="truncate max-w-[200px]">{pendingAttachment.name}</span>
+                <button onClick={() => setPendingAttachment(null)} className="ml-2 hover:bg-muted p-1 rounded-full">
+                    <X className="h-4 w-4 text-muted-foreground" />
+                </button>
+            </div>
+        )}
         <form onSubmit={handleFormSubmit} className="relative">
           <Input
             placeholder="Type a message..."
-            className="pr-28 h-12 text-base"
+            className="pr-36 h-12 text-base"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
+            disabled={isUploading}
           />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+             <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                className="hidden"
+             />
+            <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+            >
+              {isUploading ? <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /> : <Paperclip className="w-6 h-6 text-muted-foreground" />}
+            </Button>
             <Button type="button" variant="ghost" size="icon">
               <Smile className="w-6 h-6 text-muted-foreground" />
             </Button>
-            <Button type="submit" size="icon" className="h-9 w-9 bg-primary hover:bg-primary/90">
+            <Button type="submit" size="icon" className="h-9 w-9 bg-primary hover:bg-primary/90" disabled={isUploading}>
               <SendHorizontal className="w-5 h-5 text-primary-foreground" />
             </Button>
           </div>
@@ -341,6 +414,8 @@ function RoomInfoDialog({ selectedChat, currentUser }: { selectedChat: Chatroom;
 
 function ChatMessage({ message, currentUser }: { message: Message; currentUser: User }) {
     const isSender = message.sender.id === currentUser.id;
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
   return (
     <div className={cn("flex items-start gap-4", isSender && "flex-row-reverse")}>
       <Avatar className="h-10 w-10">
@@ -353,7 +428,30 @@ function ChatMessage({ message, currentUser }: { message: Message; currentUser: 
             <p className="text-xs text-muted-foreground">{message.timestamp}</p>
         </div>
         <div className={cn("p-3 rounded-lg max-w-sm md:max-w-md shadow-sm", isSender ? "bg-primary text-primary-foreground rounded-br-none" : "bg-card rounded-bl-none")}>
-          <p className="leading-relaxed">{message.content}</p>
+          {message.attachment_url && (
+              <div className="mb-2">
+                  {message.attachment_type?.startsWith('image/') ? (
+                      <a href={`${API_URL}${message.attachment_url}`} target="_blank" rel="noopener noreferrer">
+                          <img
+                            src={`${API_URL}${message.attachment_url}`}
+                            alt={message.original_name || "Attachment"}
+                            className="rounded-md max-h-60 object-cover"
+                          />
+                      </a>
+                  ) : (
+                      <a
+                        href={`${API_URL}${message.attachment_url}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 p-2 bg-background/20 rounded hover:bg-background/30 transition-colors"
+                      >
+                          <FileIcon className="h-5 w-5" />
+                          <span className="underline truncate max-w-[200px]">{message.original_name || "Download File"}</span>
+                      </a>
+                  )}
+              </div>
+          )}
+          {message.content && <p className="leading-relaxed">{message.content}</p>}
         </div>
       </div>
     </div>

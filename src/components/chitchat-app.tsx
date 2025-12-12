@@ -319,7 +319,7 @@ export function ChitChatApp() {
     }
   };
 
-  const handleSendMessage = (content: string) => {
+  const handleSendMessage = (content: string, attachment?: { url: string, type: string, name: string }) => {
     if (!selectedChat || !user) return;
 
     // Call API
@@ -331,7 +331,10 @@ export function ChitChatApp() {
         body: JSON.stringify({
             sender_id: user.id,
             room_id: selectedChat.id,
-            content: content
+            content: content,
+            attachment_url: attachment?.url,
+            attachment_type: attachment?.type,
+            original_name: attachment?.name
         })
     }).catch(err => console.error("Failed to send message", err));
   };
