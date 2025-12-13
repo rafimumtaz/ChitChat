@@ -1002,11 +1002,18 @@ def respond_notification(notif_id):
                 publish_message(msg)
 
             elif notif['type'] == 'GROUP_INVITE':
+                 # Fetch acceptor name (current user)
+                 cursor.execute("SELECT username FROM users WHERE user_id = %s", (notif['receiver_id'],))
+                 acceptor = cursor.fetchone()
+                 acceptor_name = acceptor['username'] if acceptor else "Unknown"
+
                  # Publish GROUP_JOINED
                  msg = {
                      'type': 'GROUP_JOINED',
                      'room_id': notif['reference_id'],
                      'user_id': notif['receiver_id'],
+                     'inviter_id': notif['sender_id'],
+                     'acceptor_name': acceptor_name,
                      'notif_id': notif_id
                  }
                  publish_message(msg)
