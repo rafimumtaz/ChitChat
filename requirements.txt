@@ -8,3 +8,4 @@ python-dotenv
 flask-socketio
 eventlet
 kombu
+redis
