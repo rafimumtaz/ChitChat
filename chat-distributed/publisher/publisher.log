@@ -58,3 +58,21 @@ Werkzeug appears to be used in a production deployment. Consider switching to a 
 127.0.0.1 - - [13/Dec/2025 01:40:33] "GET /socket.io/?EIO=4&transport=websocket&sid=fVaqbrGWgAEXdPfbAAAF HTTP/1.1" 200 -
 127.0.0.1 - - [13/Dec/2025 01:40:33] "GET /socket.io/?EIO=4&transport=websocket&sid=RtY_J4A9VGL58_fsAAAD HTTP/1.1" 200 -
 127.0.0.1 - - [13/Dec/2025 01:40:33] "GET /socket.io/?EIO=4&transport=websocket&sid=BMXLqbT9kwSLcsZzAAAA HTTP/1.1" 200 -
+ * Detected change in '/app/chat-distributed/publisher/message_publisher.py', reloading
+ === Application Server (Message Publisher & Auth) Started ===
+Client connected
+User 13 joined room user_13
+User 13 joined room user_13
+Client connected
+User 13 joined room user_13
+Client connected
+User 14 joined room user_14
+User 14 joined room user_14
+Client connected
+User 14 joined room user_14
+ [*] Mencoba menerbitkan pesan ke Queue: chat_queue
+ [x] Pesan berhasil diterbitkan ke RabbitMQ.
+ * Restarting with stat
+Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+ * Debugger is active!
+ * Debugger PIN: 132-491-319

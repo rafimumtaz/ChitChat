@@ -63,7 +63,8 @@ class TestRoomManagementAPI(unittest.TestCase):
         mock_conn.cursor.return_value = mock_cursor
 
         # Mock check membership (returns None = not member)
-        mock_cursor.fetchone.side_effect = [None, ('SenderName',), ('RoomName',)]
+        # Fix: Mock return values as dicts to match DictCursor usage
+        mock_cursor.fetchone.side_effect = [None, {'username': 'SenderName'}, {'room_name': 'RoomName'}]
 
         payload = {'room_id': 101, 'user_id': 2, 'sender_id': 1}
         response = self.app.post('/chatrooms/invite',
