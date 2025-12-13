@@ -102,6 +102,13 @@ export function ChitChatApp() {
                      title: "Joined Group",
                      description: "You have been added to a new chatroom.",
                  });
+             } else if (data.event === 'GROUP_INVITE_ACCEPTED') {
+                 // Refresh chatrooms to ensure socket subscriptions are up to date
+                 fetchChatrooms(currentUser.id);
+                 toast({
+                     title: "Invitation Accepted",
+                     description: `${data.acceptor_name} joined the group.`,
+                 });
              }
         });
 

@@ -63,6 +63,18 @@ def callback(ch, method, properties, body):
                         'online': True
                     }
                 }, room=f"user_{message['initiator_id']}")
+
+                # Emit update_data to acceptor (so they see new friend immediately)
+                socketio.emit('update_data', {
+                    'event': 'FRIEND_ACCEPTED',
+                    'friend': {
+                        'id': str(message['initiator_id']),
+                        'name': message.get('sender_name', 'Unknown'),
+                        'avatarUrl': f"https://ui-avatars.com/api/?name={message.get('sender_name', 'Unknown')}",
+                        'online': True
+                    }
+                }, room=f"user_{message['acceptor_id']}")
+
                 success = True
 
         elif msg_type == 'GROUP_JOINED':
@@ -71,6 +83,15 @@ def callback(ch, method, properties, body):
                  socketio.emit('added_to_room', {
                      'room_id': str(message['room_id'])
                  }, room=f"user_{message['user_id']}")
+
+                 # Emit to Inviter
+                 if 'inviter_id' in message:
+                     socketio.emit('update_data', {
+                         'event': 'GROUP_INVITE_ACCEPTED',
+                         'room_id': str(message['room_id']),
+                         'acceptor_name': message.get('acceptor_name', 'Unknown')
+                     }, room=f"user_{message['inviter_id']}")
+
                  success = True
 
         else:
