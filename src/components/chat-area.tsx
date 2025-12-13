@@ -8,6 +8,7 @@ import type { Chatroom, Message, User } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { Info, SendHorizontal, Smile, Paperclip, X, FileIcon, Loader2 } from "lucide-react";
 import React, { useState, useRef, useEffect } from "react";
+import { Socket } from "socket.io-client";
 
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -19,15 +20,19 @@ interface ChatAreaProps {
   onSendMessage: (content: string, attachment?: { url: string, type: string, name: string }) => void;
   onAddMember: (userId: string) => void;
   currentUser: User;
+  socket: Socket | null;
 }
 
-export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser }: ChatAreaProps) {
+export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser, socket }: ChatAreaProps) {
   const [newMessage, setNewMessage] = useState("");
   const [pendingAttachment, setPendingAttachment] = useState<{ url: string, type: string, name: string } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
       messagesEndRef.current?.scrollIntoView({ behavior });
@@ -43,6 +48,41 @@ export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser
     return () => clearTimeout(timeoutId);
   }, [selectedChat.messages, selectedChat.id]);
 
+  // Typing listeners
+  useEffect(() => {
+      if (!socket) return;
+
+      const onDisplayTyping = (data: any) => {
+          if (data.room_id === selectedChat.id) {
+              setTypingUsers(prev => {
+                  const newSet = new Set(prev);
+                  newSet.add(data.user_id);
+                  return newSet;
+              });
+          }
+      };
+
+      const onHideTyping = (data: any) => {
+          if (data.room_id === selectedChat.id) {
+              setTypingUsers(prev => {
+                  const newSet = new Set(prev);
+                  newSet.delete(data.user_id);
+                  return newSet;
+              });
+          }
+      };
+
+      socket.on("display_typing", onDisplayTyping);
+      socket.on("hide_typing", onHideTyping);
+
+      // Clear typing users when chat changes
+      setTypingUsers(new Set());
+
+      return () => {
+          socket.off("display_typing", onDisplayTyping);
+          socket.off("hide_typing", onHideTyping);
+      };
+  }, [socket, selectedChat.id]);
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +91,26 @@ export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser
     onSendMessage(newMessage, pendingAttachment || undefined);
     setNewMessage("");
     setPendingAttachment(null);
+
+    // Stop typing immediately on send
+    if (socket && typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        socket.emit("typing_stop", { room_id: selectedChat.id });
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setNewMessage(e.target.value);
+
+      if (socket) {
+          socket.emit("typing_start", { room_id: selectedChat.id });
+
+          if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+          typingTimeoutRef.current = setTimeout(() => {
+              socket.emit("typing_stop", { room_id: selectedChat.id });
+          }, 2000);
+      }
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,12 +150,29 @@ export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser
       }
   };
 
+  // Determine header status
+  let headerStatus = selectedChat.topic;
+  if (typingUsers.size > 0) {
+      headerStatus = "Typing...";
+  } else if (selectedChat.userStatus) {
+      // It's a DM and we have status
+      if (selectedChat.userStatus.online) {
+          headerStatus = "Online";
+      } else if (selectedChat.userStatus.lastSeen) {
+          // Parse ISO string
+          const date = new Date(selectedChat.userStatus.lastSeen);
+          headerStatus = `Last seen ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+      } else {
+          headerStatus = "Offline";
+      }
+  }
+
   return (
     <div className="flex flex-col h-full">
       <header className="p-4 border-b flex items-center justify-between bg-card">
         <div>
           <h2 className="text-lg font-semibold">{selectedChat.name}</h2>
-          <p className="text-sm text-muted-foreground">{selectedChat.topic}</p>
+          <p className={cn("text-sm text-muted-foreground", headerStatus === "Online" && "text-green-600 font-medium", headerStatus === "Typing..." && "text-primary font-medium italic")}>{headerStatus}</p>
         </div>
         <div className="flex items-center gap-2">
             {(selectedChat.type === 'group' || !selectedChat.type) && (
@@ -136,7 +213,7 @@ export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser
             placeholder="Type a message..."
             className="pr-36 h-12 text-base"
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
+            onChange={handleInputChange}
             disabled={isUploading}
           />
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">

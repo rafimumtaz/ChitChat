@@ -9,6 +9,8 @@ import pymysql.cursors
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask_socketio import SocketIO, emit, join_room, leave_room
+import redis
+from socket_events import register_socket_events
 
 app = Flask(__name__, static_folder='static')
 CORS(app)  # Enable CORS for all routes
@@ -20,6 +22,10 @@ RABBITMQ_HOST = os.getenv('RABBITMQ_HOST', 'localhost')
 # Use threading mode to avoid conflict with pika BlockingConnection and eventlet
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading', message_queue=f'amqp://guest:guest@{RABBITMQ_HOST}:5672//')
 RABBITMQ_QUEUE = 'chat_queue'
+
+# Redis Configuration
+r_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+register_socket_events(socketio, r_client)
 
 # Database Configuration (for Auth)
 DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
@@ -179,9 +185,7 @@ def send_message():
         return jsonify({"status": "error", "message": "Message Broker is unavailable. Try again later."}), 503
 
 # SocketIO Events
-@socketio.on('connect')
-def handle_connect():
-    print('Client connected')
+# connect event is handled in socket_events.py
 
 @socketio.on('join_user_room')
 def handle_join_user_room(data):
@@ -344,11 +348,7 @@ def login():
         user = cursor.fetchone()
 
         if user and check_password_hash(user['password'], password):
-            # Update status to online
-            update_sql = "UPDATE users SET status = 'online' WHERE user_id = %s"
-            cursor.execute(update_sql, (user['user_id'],))
-            conn.commit()
-
+            # Status managed by Redis events
             return jsonify({
                 "status": "success",
                 "message": "Login successful",
@@ -380,13 +380,7 @@ def logout():
 
     conn = None
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        update_sql = "UPDATE users SET status = 'offline' WHERE user_id = %s"
-        cursor.execute(update_sql, (user_id,))
-        conn.commit()
-
+        # Status managed by Redis events (disconnect)
         return jsonify({"status": "success", "message": "Logged out successfully"}), 200
     except pymysql.MySQLError as err:
         return jsonify({"status": "error", "message": str(err)}), 500
@@ -610,10 +604,11 @@ def get_chatrooms():
              display_name = room['room_name']
 
              # If direct chat, find the OTHER user's name
+             other_user_id_str = None
              if room.get('type') == 'direct' and user_id:
                  # Fetch the other member
                  sql_other = """
-                    SELECT u.username
+                    SELECT u.username, u.user_id
                     FROM room_members rm
                     JOIN users u ON rm.user_id = u.user_id
                     WHERE rm.room_id = %s AND rm.user_id != %s
@@ -622,10 +617,12 @@ def get_chatrooms():
                  other_user = cursor.fetchone()
                  if other_user:
                      display_name = other_user['username']
+                     other_user_id_str = str(other_user['user_id'])
 
              formatted_chatrooms.append({
                  "id": str(room['room_id']),
                  "name": display_name,
+                 "otherUserId": other_user_id_str,
                  "topic": "Direct Message" if room.get('type') == 'direct' else "General topic",
                  "type": room.get('type', 'group'),
                  "messages": []
@@ -724,11 +721,12 @@ def search_users():
 
         formatted_users = []
         for u in users:
+             is_online = r_client.get(f"presence:user:{u['user_id']}") == "online"
              formatted_users.append({
                  "id": str(u['user_id']),
                  "name": u['username'],
                  "avatarUrl": f"https://ui-avatars.com/api/?name={u['username']}",
-                 "online": u['status'] == 'online'
+                 "online": is_online
              })
 
         return jsonify({"status": "success", "data": formatted_users}), 200
@@ -812,11 +810,14 @@ def get_friends():
 
         formatted_friends = []
         for f in friends:
+             is_online = r_client.get(f"presence:user:{f['user_id']}") == "online"
+             last_seen = r_client.get(f"last_seen:user:{f['user_id']}")
              formatted_friends.append({
                  "id": str(f['user_id']),
                  "name": f['username'],
                  "avatarUrl": f"https://ui-avatars.com/api/?name={f['username']}",
-                 "online": f['status'] == 'online'
+                 "online": is_online,
+                 "lastSeen": last_seen
              })
 
         return jsonify({"status": "success", "data": formatted_friends}), 200
@@ -858,11 +859,12 @@ def get_room_info(room_id):
 
         formatted_members = []
         for m in members:
+            is_online = r_client.get(f"presence:user:{m['user_id']}") == "online"
             formatted_members.append({
                 "id": str(m['user_id']),
                 "name": m['username'],
                 "avatarUrl": f"https://ui-avatars.com/api/?name={m['username']}",
-                "online": m['status'] == 'online'
+                "online": is_online
             })
 
         return jsonify({
