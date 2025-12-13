@@ -35,7 +35,7 @@ def register_socket_events(socketio, redis_client):
         emit('user_status_change', {'user_id': user_id, 'status': 'online'}, broadcast=True)
 
     @socketio.on('disconnect')
-    def handle_disconnect():
+    def handle_disconnect(reason=None):
         user_id = sid_to_user.get(request.sid)
         if user_id:
             # Remove presence
