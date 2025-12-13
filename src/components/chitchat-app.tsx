@@ -92,8 +92,8 @@ export function ChitChatApp() {
                     return prev;
                  });
                  toast({
-                     title: "Friend Request Accepted",
-                     description: `${friend.name} accepted your friend request.`,
+                     title: "Friend Added",
+                     description: `You are now friends with ${friend.name}.`,
                  });
              } else if (data.event === 'GROUP_JOINED') {
                  // Refresh chatrooms
@@ -121,6 +121,44 @@ export function ChitChatApp() {
              fetchChatrooms(currentUser.id);
         });
 
+        socket.on("room_deleted", (data: any) => {
+             setChatrooms(prev => prev.filter(c => c.id !== data.room_id));
+             setSelectedChat(prev => {
+                 if (prev && prev.id === data.room_id) {
+                     return null;
+                 }
+                 return prev;
+             });
+             toast({
+                 title: "Room Deleted",
+                 description: "The chatroom has been deleted by the admin.",
+                 variant: "destructive"
+             });
+        });
+
+        socket.on("chat_cleared", (data: any) => {
+             setSelectedChat(prev => {
+                 if (prev && prev.id === data.room_id) {
+                     return { ...prev, messages: [] };
+                 }
+                 return prev;
+             });
+             setChatrooms(prev => prev.map(c => {
+                 if (c.id === data.room_id) {
+                     return { ...c, messages: [] };
+                 }
+                 return c;
+             }));
+
+             // Optional: Toast only if viewing? Or always.
+             // data.room_id is string
+             // selectedChat.id is string
+             toast({
+                 title: "Chat Cleared",
+                 description: "The chat history has been cleared.",
+             });
+        });
+
         setLoading(false);
 
         return () => {
@@ -130,6 +168,8 @@ export function ChitChatApp() {
              socket.off("update_data");
              socket.off("added_to_room");
              socket.off("new_private_chat");
+             socket.off("room_deleted");
+             socket.off("chat_cleared");
         }
       } catch (e) {
         console.error("Failed to parse user data", e);
