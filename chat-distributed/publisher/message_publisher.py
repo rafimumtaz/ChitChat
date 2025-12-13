@@ -22,7 +22,7 @@ RABBITMQ_QUEUE = 'chat_queue'
 DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
 DB_PORT = int(os.getenv("DB_PORT", 3306))
 DB_USER = os.getenv("DB_USER", "root")
-DB_PASS = os.getenv("DB_PASS", "292006")
+DB_PASS = os.getenv("DB_PASS", "")
 DB_NAME = os.getenv("DB_NAME", "chat_distribution_db")
 
 def get_db_connection():
