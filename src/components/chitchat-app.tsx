@@ -7,6 +7,7 @@ import { friends as initialFriends } from "@/lib/data";
 import { ChatSidebar } from "@/components/chat-sidebar";
 import { ChatArea } from "@/components/chat-area";
 import { MessageSquare } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import io from "socket.io-client";
 
 // Use environment variable or default to localhost:5000
@@ -14,6 +15,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const socket = io(API_URL);
 
 export function ChitChatApp() {
+  const { toast } = useToast();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [chatrooms, setChatrooms] = useState<Chatroom[]>([]);
@@ -73,6 +75,36 @@ export function ChitChatApp() {
             });
         });
 
+        socket.on("new_notification", (data: any) => {
+             toast({
+                 title: "New Notification",
+                 description: data.message,
+             });
+        });
+
+        socket.on("update_data", (data: any) => {
+             if (data.event === 'FRIEND_ACCEPTED') {
+                 const friend = data.friend;
+                 setFriends(prev => {
+                    if (!prev.some(f => f.id === friend.id)) {
+                        return [...prev, friend].sort((a, b) => a.name.localeCompare(b.name));
+                    }
+                    return prev;
+                 });
+                 toast({
+                     title: "Friend Request Accepted",
+                     description: `${friend.name} accepted your friend request.`,
+                 });
+             } else if (data.event === 'GROUP_JOINED') {
+                 // Refresh chatrooms
+                 fetchChatrooms(currentUser.id);
+                 toast({
+                     title: "Joined Group",
+                     description: "You have been added to a new chatroom.",
+                 });
+             }
+        });
+
         socket.on("added_to_room", (data: any) => {
              // Re-fetch chatrooms to get the new one
              fetchChatrooms(currentUser.id);
@@ -87,6 +119,8 @@ export function ChitChatApp() {
         return () => {
              socket.off("new_message");
              socket.off("new_friend");
+             socket.off("new_notification");
+             socket.off("update_data");
              socket.off("added_to_room");
              socket.off("new_private_chat");
         }

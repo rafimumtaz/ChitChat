@@ -1,144 +1,60 @@
+Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
  === Application Server (Message Publisher & Auth) Started ===
+ * Serving Flask app 'message_publisher'
+ * Debug mode: on
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+[33mPress CTRL+C to quit[0m
  * Restarting with stat
+Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
  * Debugger is active!
- * Debugger PIN: 316-492-473
-(63541) wsgi starting up on http://127.0.0.1:5000
-(63541) accepted ('127.0.0.1', 54394)
-127.0.0.1 - - [12/Dec/2025 02:26:23] "POST /register HTTP/1.1" 201 240 0.182691
-(63541) accepted ('127.0.0.1', 42708)
-127.0.0.1 - - [12/Dec/2025 02:26:23] "POST /login HTTP/1.1" 200 366 0.142556
-(63541) accepted ('127.0.0.1', 42710)
-127.0.0.1 - - [12/Dec/2025 02:26:23] "POST /create-room HTTP/1.1" 201 348 0.004908
-(63541) accepted ('127.0.0.1', 42712)
-127.0.0.1 - - [12/Dec/2025 02:26:23] "POST /api/upload HTTP/1.1" 201 335 0.002594
-(63541) accepted ('127.0.0.1', 42722)
-127.0.0.1 - - [12/Dec/2025 02:26:23] "POST /send-message HTTP/1.1" 202 333 0.020257
-(63541) accepted ('127.0.0.1', 42738)
-127.0.0.1 - - [12/Dec/2025 02:26:25] "GET /messages?room_id=1 HTTP/1.1" 200 204 0.004352
-(63541) accepted ('127.0.0.1', 51882)
-127.0.0.1 - - [12/Dec/2025 02:28:14] "POST /register HTTP/1.1" 201 240 0.139951
-(63541) accepted ('127.0.0.1', 51894)
-127.0.0.1 - - [12/Dec/2025 02:28:14] "POST /login HTTP/1.1" 200 366 0.139323
-(63541) accepted ('127.0.0.1', 51900)
-127.0.0.1 - - [12/Dec/2025 02:28:14] "POST /create-room HTTP/1.1" 201 348 0.005706
-(63541) accepted ('127.0.0.1', 51916)
-127.0.0.1 - - [12/Dec/2025 02:28:14] "POST /api/upload HTTP/1.1" 201 335 0.002072
-(63541) accepted ('127.0.0.1', 51922)
-127.0.0.1 - - [12/Dec/2025 02:28:14] "POST /send-message HTTP/1.1" 202 333 0.017200
-(63541) accepted ('127.0.0.1', 51934)
-127.0.0.1 - - [12/Dec/2025 02:28:16] "GET /messages?room_id=2 HTTP/1.1" 200 204 0.004501
-(63541) accepted ('127.0.0.1', 54216)
-127.0.0.1 - - [12/Dec/2025 02:30:43] "GET /messages?room_id=2 HTTP/1.1" 200 632 0.005692
- * Detected change in '/app/verification/verify_attachment.py', reloading
- === Application Server (Message Publisher & Auth) Started ===
- [*] Mencoba menerbitkan pesan ke Queue: chat_queue
- [x] Pesan berhasil diterbitkan ke RabbitMQ.
- [*] Mencoba menerbitkan pesan ke Queue: chat_queue
- [x] Pesan berhasil diterbitkan ke RabbitMQ.
- * Restarting with stat
- * Debugger is active!
- * Debugger PIN: 316-492-473
-(68518) wsgi starting up on http://127.0.0.1:5000
-(68518) accepted ('127.0.0.1', 35874)
-127.0.0.1 - - [12/Dec/2025 02:36:51] "OPTIONS /register HTTP/1.1" 200 347 0.004093
-127.0.0.1 - - [12/Dec/2025 02:36:52] "POST /register HTTP/1.1" 201 274 0.501528
-127.0.0.1 - - [12/Dec/2025 02:36:54] "OPTIONS /login HTTP/1.1" 200 347 0.000867
-127.0.0.1 - - [12/Dec/2025 02:36:54] "POST /login HTTP/1.1" 200 392 0.411698
-127.0.0.1 - - [12/Dec/2025 02:36:57] "GET /socket.io/?EIO=4&transport=polling&t=9alg89kn HTTP/1.1" 200 352 0.000511
-127.0.0.1 - - [12/Dec/2025 02:36:57] "POST /socket.io/?EIO=4&transport=polling&t=9algl3u0&sid=pdJZGg4DxE3GEv1OAAAA HTTP/1.1" 200 219 0.004979
-(68518) accepted ('127.0.0.1', 37166)
-(68518) accepted ('127.0.0.1', 37180)
-127.0.0.1 - - [12/Dec/2025 02:36:57] "GET /socket.io/?EIO=4&transport=polling&t=9algn1ji&sid=pdJZGg4DxE3GEv1OAAAA HTTP/1.1" 200 233 0.000166
-127.0.0.1 - - [12/Dec/2025 02:36:57] "GET /socket.io/?EIO=4&transport=polling&t=9alh93pr&sid=pdJZGg4DxE3GEv1OAAAA HTTP/1.1" 200 233 0.000240
-127.0.0.1 - - [12/Dec/2025 02:36:57] "GET /friends?user_id=3 HTTP/1.1" 200 238 0.004951
-127.0.0.1 - - [12/Dec/2025 02:36:57] "GET /chatrooms?user_id=3 HTTP/1.1" 200 238 0.006850
-(68518) accepted ('127.0.0.1', 37186)
-127.0.0.1 - - [12/Dec/2025 02:36:57] "GET /friends?user_id=3 HTTP/1.1" 200 238 0.005152
-127.0.0.1 - - [12/Dec/2025 02:36:57] "GET /chatrooms?user_id=3 HTTP/1.1" 200 238 0.003094
-127.0.0.1 - - [12/Dec/2025 02:36:57] "GET /notifications?user_id=3 HTTP/1.1" 200 238 0.003901
-127.0.0.1 - - [12/Dec/2025 02:36:57] "GET /socket.io/?EIO=4&transport=polling&t=9aljm18m HTTP/1.1" 200 352 0.000331
-(68518) accepted ('127.0.0.1', 37200)
-127.0.0.1 - - [12/Dec/2025 02:36:57] "GET /notifications?user_id=3 HTTP/1.1" 200 238 0.003189
-127.0.0.1 - - [12/Dec/2025 02:36:57] "GET /socket.io/?EIO=4&transport=polling&t=9aljq65e HTTP/1.1" 200 352 0.000256
-127.0.0.1 - - [12/Dec/2025 02:36:57] "GET /socket.io/?EIO=4&transport=polling&t=9allin66&sid=pdJZGg4DxE3GEv1OAAAA HTTP/1.1" 200 233 0.000206
-127.0.0.1 - - [12/Dec/2025 02:36:57] "POST /socket.io/?EIO=4&transport=polling&t=9alme6kb&sid=TguvjvXShiW77cjLAAAD HTTP/1.1" 200 219 0.002264
-(68518) accepted ('127.0.0.1', 37216)
-127.0.0.1 - - [12/Dec/2025 02:36:57] "GET /socket.io/?EIO=4&transport=polling&t=9almfwqu&sid=TguvjvXShiW77cjLAAAD HTTP/1.1" 200 265 0.000173
-127.0.0.1 - - [12/Dec/2025 02:36:58] "GET /socket.io/?EIO=4&transport=polling&t=9alno1jv&sid=TguvjvXShiW77cjLAAAD HTTP/1.1" 200 233 0.000229
-127.0.0.1 - - [12/Dec/2025 02:36:58] "POST /socket.io/?EIO=4&transport=polling&t=9alnpkf0&sid=TguvjvXShiW77cjLAAAD HTTP/1.1" 200 219 0.000279
-127.0.0.1 - - [12/Dec/2025 02:37:28] "GET /socket.io/?EIO=4&transport=websocket&sid=pdJZGg4DxE3GEv1OAAAA HTTP/1.1" 200 0 30.412208
-127.0.0.1 - - [12/Dec/2025 02:37:28] "GET /socket.io/?EIO=4&transport=websocket&sid=TguvjvXShiW77cjLAAAD HTTP/1.1" 200 0 30.203950
- * Detected change in '/app/verification/verify_attachment.py', reloading
- === Application Server (Message Publisher & Auth) Started ===
-Client connected
-Client connected
-User 3 joined room user_3
-User 3 joined room user_3
-User 3 joined room user_3
- * Restarting with stat
- * Debugger is active!
- * Debugger PIN: 316-492-473
-(70317) wsgi starting up on http://127.0.0.1:5000
-(70317) accepted ('127.0.0.1', 35618)
-127.0.0.1 - - [12/Dec/2025 02:38:04] "OPTIONS /register HTTP/1.1" 200 347 0.003659
-127.0.0.1 - - [12/Dec/2025 02:38:04] "POST /register HTTP/1.1" 201 274 0.143655
-127.0.0.1 - - [12/Dec/2025 02:38:04] "OPTIONS /login HTTP/1.1" 200 347 0.000881
-127.0.0.1 - - [12/Dec/2025 02:38:04] "POST /login HTTP/1.1" 200 392 0.147878
-127.0.0.1 - - [12/Dec/2025 02:38:04] "GET /socket.io/?EIO=4&transport=polling&t=9c1bxp76 HTTP/1.1" 200 352 0.000651
-127.0.0.1 - - [12/Dec/2025 02:38:05] "POST /socket.io/?EIO=4&transport=polling&t=9c1cavpi&sid=QEGUpPHNh4SXz01_AAAA HTTP/1.1" 200 219 0.001316
-(70317) accepted ('127.0.0.1', 35620)
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /socket.io/?EIO=4&transport=polling&t=9c1cc89f&sid=QEGUpPHNh4SXz01_AAAA HTTP/1.1" 200 265 0.000281
-(70317) accepted ('127.0.0.1', 35632)
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /socket.io/?EIO=4&transport=polling&t=9c1cpquu&sid=QEGUpPHNh4SXz01_AAAA HTTP/1.1" 200 233 0.000284
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /chatrooms?user_id=4 HTTP/1.1" 200 238 0.005870
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /friends?user_id=4 HTTP/1.1" 200 238 0.003013
-(70317) accepted ('127.0.0.1', 35634)
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /friends?user_id=4 HTTP/1.1" 200 238 0.003278
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /chatrooms?user_id=4 HTTP/1.1" 200 238 0.003023
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /notifications?user_id=4 HTTP/1.1" 200 238 0.004229
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /socket.io/?EIO=4&transport=polling&t=9c1f94gx HTTP/1.1" 200 352 0.000297
-(70317) accepted ('127.0.0.1', 35646)
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /socket.io/?EIO=4&transport=polling&t=9c1fdqhu HTTP/1.1" 200 352 0.000295
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /notifications?user_id=4 HTTP/1.1" 200 238 0.003380
-127.0.0.1 - - [12/Dec/2025 02:38:05] "POST /socket.io/?EIO=4&transport=polling&t=9c1gyyos&sid=-E__py_mVJiMdeheAAAD HTTP/1.1" 200 219 0.000930
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /socket.io/?EIO=4&transport=polling&t=9c1gzy3w&sid=-E__py_mVJiMdeheAAAD HTTP/1.1" 200 265 0.000179
-(70317) accepted ('127.0.0.1', 35648)
-(70317) accepted ('127.0.0.1', 35656)
-127.0.0.1 - - [12/Dec/2025 02:38:05] "POST /create-room HTTP/1.1" 201 354 0.004746
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /socket.io/?EIO=4&transport=polling&t=9c1i3c6l&sid=-E__py_mVJiMdeheAAAD HTTP/1.1" 200 233 0.000208
-127.0.0.1 - - [12/Dec/2025 02:38:05] "POST /socket.io/?EIO=4&transport=polling&t=9c1i4hge&sid=-E__py_mVJiMdeheAAAD HTTP/1.1" 200 219 0.000321
-(70317) accepted ('127.0.0.1', 35672)
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /socket.io/?EIO=4&transport=polling&t=9c1ns1ga HTTP/1.1" 200 295 0.000333
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /socket.io/?EIO=4&transport=websocket&sid=-E__py_mVJiMdeheAAAD HTTP/1.1" 200 0 0.277504
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /socket.io/?EIO=4&transport=websocket&sid=QEGUpPHNh4SXz01_AAAA HTTP/1.1" 200 0 0.443203
-(70317) accepted ('127.0.0.1', 35686)
-(70317) accepted ('127.0.0.1', 35700)
-(70317) accepted ('127.0.0.1', 35708)
-127.0.0.1 - - [12/Dec/2025 02:38:05] "POST /socket.io/?EIO=4&transport=polling&t=9c1owmkm&sid=ys95nJ85VUtQuipCAAAF HTTP/1.1" 200 162 0.000916
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /socket.io/?EIO=4&transport=polling&t=9c1p14hu&sid=ys95nJ85VUtQuipCAAAF HTTP/1.1" 200 176 0.000159
-(70317) accepted ('127.0.0.1', 35712)
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /socket.io/?EIO=4&transport=polling&t=9c1q4i7i&sid=ys95nJ85VUtQuipCAAAF HTTP/1.1" 200 176 0.000235
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /socket.io/?EIO=4&transport=polling&t=9c1v83ad HTTP/1.1" 200 352 0.000411
-127.0.0.1 - - [12/Dec/2025 02:38:05] "POST /socket.io/?EIO=4&transport=polling&t=9c1vu5vl&sid=fxejh3k-Qf0CjR7GAAAH HTTP/1.1" 200 219 0.000864
-(70317) accepted ('127.0.0.1', 35722)
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /socket.io/?EIO=4&transport=polling&t=9c1vxhxa&sid=fxejh3k-Qf0CjR7GAAAH HTTP/1.1" 200 265 0.000241
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /chatrooms?user_id=4 HTTP/1.1" 200 380 0.003991
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /friends?user_id=4 HTTP/1.1" 200 238 0.003128
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /notifications?user_id=4 HTTP/1.1" 200 238 0.006687
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /socket.io/?EIO=4&transport=polling&t=9c1ycebr HTTP/1.1" 200 352 0.000844
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /socket.io/?EIO=4&transport=polling&t=9c1y51a6 HTTP/1.1" 200 352 0.000843
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /notifications?user_id=4 HTTP/1.1" 200 238 0.005991
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /socket.io/?EIO=4&transport=polling&t=9c203l02&sid=fxejh3k-Qf0CjR7GAAAH HTTP/1.1" 200 233 0.000247
-127.0.0.1 - - [12/Dec/2025 02:38:05] "POST /socket.io/?EIO=4&transport=polling&t=9c204g0o&sid=fxejh3k-Qf0CjR7GAAAH HTTP/1.1" 200 219 0.000260
-(70317) accepted ('127.0.0.1', 35734)
-127.0.0.1 - - [12/Dec/2025 02:38:05] "POST /socket.io/?EIO=4&transport=polling&t=9c207z0p&sid=6ytIDYkAkJc3vTnyAAAJ HTTP/1.1" 200 219 0.001653
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /socket.io/?EIO=4&transport=polling&t=9c208r5o&sid=6ytIDYkAkJc3vTnyAAAJ HTTP/1.1" 200 233 0.001148
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /socket.io/?EIO=4&transport=polling&t=9c20j0sg&sid=fxejh3k-Qf0CjR7GAAAH HTTP/1.1" 200 233 0.000903
-127.0.0.1 - - [12/Dec/2025 02:38:05] "POST /socket.io/?EIO=4&transport=polling&t=9c20q4jf&sid=fxejh3k-Qf0CjR7GAAAH HTTP/1.1" 200 219 0.000323
-127.0.0.1 - - [12/Dec/2025 02:38:05] "GET /socket.io/?EIO=4&transport=polling&t=9c20sss1&sid=6ytIDYkAkJc3vTnyAAAJ HTTP/1.1" 200 233 0.000203
-127.0.0.1 - - [12/Dec/2025 02:38:06] "GET /messages?room_id=3 HTTP/1.1" 200 238 0.003069
-127.0.0.1 - - [12/Dec/2025 02:38:06] "POST /api/upload HTTP/1.1" 201 383 0.002263
-127.0.0.1 - - [12/Dec/2025 02:38:06] "OPTIONS /send-message HTTP/1.1" 200 347 0.000969
-127.0.0.1 - - [12/Dec/2025 02:38:06] "POST /send-message HTTP/1.1" 202 367 0.024636
-127.0.0.1 - - [12/Dec/2025 02:38:06] "GET /socket.io/?EIO=4&transport=websocket&sid=6ytIDYkAkJc3vTnyAAAJ HTTP/1.1" 200 0 0.667194
-127.0.0.1 - - [12/Dec/2025 02:38:06] "GET /socket.io/?EIO=4&transport=websocket&sid=fxejh3k-Qf0CjR7GAAAH HTTP/1.1" 200 0 0.826895
+ * Debugger PIN: 132-491-319
+127.0.0.1 - - [13/Dec/2025 01:39:28] "[33mGET / HTTP/1.1[0m" 404 -
+127.0.0.1 - - [13/Dec/2025 01:40:23] "[35m[1mPOST /register HTTP/1.1[0m" 201 -
+127.0.0.1 - - [13/Dec/2025 01:40:24] "[35m[1mPOST /register HTTP/1.1[0m" 201 -
+127.0.0.1 - - [13/Dec/2025 01:40:24] "OPTIONS /login HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:24] "POST /login HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:24] "GET /socket.io/?EIO=4&transport=polling&t=mpq7xtww HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:24] "POST /socket.io/?EIO=4&transport=polling&t=mpq8nu4y&sid=BMXLqbT9kwSLcsZzAAAA HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:24] "GET /socket.io/?EIO=4&transport=polling&t=mpq8qoy6&sid=BMXLqbT9kwSLcsZzAAAA HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "GET /socket.io/?EIO=4&transport=polling&t=mpq970o8&sid=BMXLqbT9kwSLcsZzAAAA HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "GET /chatrooms?user_id=13 HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "GET /friends?user_id=13 HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "GET /chatrooms?user_id=13 HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "GET /friends?user_id=13 HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "GET /notifications?user_id=13 HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "GET /socket.io/?EIO=4&transport=polling&t=mpqbw7se HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "GET /notifications?user_id=13 HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "GET /socket.io/?EIO=4&transport=polling&t=mpqc0muu HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "POST /socket.io/?EIO=4&transport=polling&t=mpqdsfr3&sid=RtY_J4A9VGL58_fsAAAD HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "GET /socket.io/?EIO=4&transport=polling&t=mpqdttz1&sid=RtY_J4A9VGL58_fsAAAD HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "GET /socket.io/?EIO=4&transport=polling&t=mpqfjarh&sid=RtY_J4A9VGL58_fsAAAD HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "POST /socket.io/?EIO=4&transport=polling&t=mpqfk1k1&sid=RtY_J4A9VGL58_fsAAAD HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "GET /socket.io/?EIO=4&transport=polling&t=mpqh2ur8&sid=RtY_J4A9VGL58_fsAAAD HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "OPTIONS /login HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "POST /login HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "GET /socket.io/?EIO=4&transport=polling&t=mpqxyl19 HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "POST /socket.io/?EIO=4&transport=polling&t=mpqygtmt&sid=fVaqbrGWgAEXdPfbAAAF HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "GET /socket.io/?EIO=4&transport=polling&t=mpqyiqvl&sid=fVaqbrGWgAEXdPfbAAAF HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "GET /socket.io/?EIO=4&transport=polling&t=mpqywqcj&sid=fVaqbrGWgAEXdPfbAAAF HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "GET /chatrooms?user_id=14 HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "GET /friends?user_id=14 HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "GET /friends?user_id=14 HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:25] "GET /chatrooms?user_id=14 HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:26] "GET /socket.io/?EIO=4&transport=polling&t=mpr1lw1r HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:26] "GET /notifications?user_id=14 HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:26] "GET /socket.io/?EIO=4&transport=polling&t=mpr1pjwr HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:26] "GET /notifications?user_id=14 HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:26] "POST /socket.io/?EIO=4&transport=polling&t=mpr2x4rd&sid=XDxjkmcM1CpJnwE1AAAI HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:26] "GET /socket.io/?EIO=4&transport=polling&t=mpr2ysch&sid=XDxjkmcM1CpJnwE1AAAI HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:26] "GET /socket.io/?EIO=4&transport=polling&t=mpr42g5j&sid=XDxjkmcM1CpJnwE1AAAI HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:26] "POST /socket.io/?EIO=4&transport=polling&t=mpr43202&sid=XDxjkmcM1CpJnwE1AAAI HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:26] "GET /socket.io/?EIO=4&transport=polling&t=mpr4b6c1&sid=XDxjkmcM1CpJnwE1AAAI HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:26] "GET /users/search?query=userb_1765590023&user_id=13 HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:26] "OPTIONS /friends HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:26] "[35m[1mPOST /friends HTTP/1.1[0m" 201 -
+127.0.0.1 - - [13/Dec/2025 01:40:32] "GET /notifications?user_id=14 HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:33] "GET /socket.io/?EIO=4&transport=websocket&sid=XDxjkmcM1CpJnwE1AAAI HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:33] "GET /socket.io/?EIO=4&transport=websocket&sid=fVaqbrGWgAEXdPfbAAAF HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:33] "GET /socket.io/?EIO=4&transport=websocket&sid=RtY_J4A9VGL58_fsAAAD HTTP/1.1" 200 -
+127.0.0.1 - - [13/Dec/2025 01:40:33] "GET /socket.io/?EIO=4&transport=websocket&sid=BMXLqbT9kwSLcsZzAAAA HTTP/1.1" 200 -
