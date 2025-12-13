@@ -552,11 +552,11 @@ def invite_to_room():
         # Fetch details for notification message
         cursor.execute("SELECT username FROM users WHERE user_id = %s", (sender_id,))
         sender = cursor.fetchone()
-        sender_name = sender[0] if sender else "Unknown"
+        sender_name = sender['username'] if sender else "Unknown"
 
         cursor.execute("SELECT room_name FROM chatrooms WHERE room_id = %s", (room_id,))
         room = cursor.fetchone()
-        room_name = room[0] if room else "Chatroom"
+        room_name = room['room_name'] if room else "Chatroom"
 
         # Publish to RabbitMQ
         msg = {

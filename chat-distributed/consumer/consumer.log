@@ -9,3 +9,5 @@ Trying to connect to RabbitMQ...
 Consumer started and listening on: chat_queue
 Received message: {'type': 'FRIEND_REQUEST', 'sender_id': '13', 'receiver_id': '14', 'sender_name': 'usera_1765590023'}
 Processed FRIEND_REQUEST
+Received message: {'type': 'GROUP_INVITE', 'sender_id': 1, 'receiver_id': 2, 'room_id': 101, 'sender_name': 'SenderName', 'room_name': 'RoomName'}
+Processed GROUP_INVITE
