@@ -13,3 +13,12 @@ Processed FRIEND_REQUEST
 DEBUG: Callback hit. Body len: 155
 Received message: {'type': 'FRIEND_ACCEPTED', 'initiator_id': 27, 'acceptor_id': 28, 'sender_name': 'usera_1765606319', 'acceptor_name': 'userb_1765606319', 'notif_id': '9'}
 Processed FRIEND_ACCEPTED
+DEBUG: Callback hit. Body len: 97
+Received message: {'type': 'FRIEND_REQUEST', 'sender_id': 29, 'receiver_id': 30, 'sender_name': 'usera_1765616956'}
+Processed FRIEND_REQUEST
+DEBUG: Callback hit. Body len: 156
+Received message: {'type': 'FRIEND_ACCEPTED', 'initiator_id': 29, 'acceptor_id': 30, 'sender_name': 'usera_1765616956', 'acceptor_name': 'userb_1765616956', 'notif_id': '10'}
+Processed FRIEND_ACCEPTED
+DEBUG: Callback hit. Body len: 97
+Received message: {'type': 'FRIEND_REQUEST', 'sender_id': 31, 'receiver_id': 32, 'sender_name': 'usera_1765617039'}
+Processed FRIEND_REQUEST

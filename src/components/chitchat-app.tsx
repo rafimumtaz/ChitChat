@@ -8,16 +8,16 @@ import { ChatSidebar } from "@/components/chat-sidebar";
 import { ChatArea } from "@/components/chat-area";
 import { MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import io from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 
 // Use environment variable or default to localhost:5000
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-const socket = io(API_URL);
 
 export function ChitChatApp() {
   const { toast } = useToast();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [chatrooms, setChatrooms] = useState<Chatroom[]>([]);
   const [friends, setFriends] = useState<Friend[]>(initialFriends);
   const [selectedChat, setSelectedChat] = useState<Chatroom | null>(null);
@@ -31,7 +31,6 @@ export function ChitChatApp() {
     } else {
       try {
         const parsedUser = JSON.parse(storedUser);
-        // Map backend user structure to frontend User type
         const currentUser = {
             id: parsedUser.user_id.toString(),
             name: parsedUser.username,
@@ -44,11 +43,53 @@ export function ChitChatApp() {
         fetchChatrooms(currentUser.id);
         fetchFriends(currentUser.id);
 
-        // Connect Socket
-        socket.emit("join_user_room", { user_id: currentUser.id });
+        // Initialize Socket with user_id
+        const newSocket = io(API_URL, {
+            query: { user_id: currentUser.id }
+        });
+        setSocket(newSocket);
 
-        // Listeners
-        socket.on("new_message", (data: any) => {
+        // Handle window unload
+        const handleBeforeUnload = () => newSocket.disconnect();
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        setLoading(false);
+
+        return () => {
+            newSocket.disconnect();
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+      } catch (e) {
+        console.error("Failed to parse user data", e);
+        router.push("/login");
+      }
+    }
+  }, [router]);
+
+  // Socket Listeners
+  useEffect(() => {
+      if (!socket || !user) return;
+
+      // Join user room
+      socket.emit("join_user_room", { user_id: user.id });
+
+      socket.on("user_status_change", (data: any) => {
+          setFriends(prev => prev.map(f => {
+              if (f.id === data.user_id) {
+                  return { ...f, online: data.status === 'online', lastSeen: data.last_seen };
+              }
+              return f;
+          }));
+
+          setSelectedChat(prev => {
+              if (prev && prev.otherUserId === data.user_id) {
+                  return { ...prev, userStatus: { online: data.status === 'online', lastSeen: data.last_seen } };
+              }
+              return prev;
+          });
+      });
+
+      socket.on("new_message", (data: any) => {
             setChatrooms(prev => prev.map(c => {
                 if (c.id === data.room_id) {
                     return { ...c, messages: [...c.messages, data] };
@@ -56,8 +97,6 @@ export function ChitChatApp() {
                 return c;
             }));
 
-            // If current chat is the one receiving message, update it too (state is separate? no, derived mostly)
-            // But setSelectedChat is separate state.
             setSelectedChat(prev => {
                 if (prev && prev.id === data.room_id) {
                      return { ...prev, messages: [...prev.messages, data] };
@@ -96,15 +135,13 @@ export function ChitChatApp() {
                      description: `You are now friends with ${friend.name}.`,
                  });
              } else if (data.event === 'GROUP_JOINED') {
-                 // Refresh chatrooms
-                 fetchChatrooms(currentUser.id);
+                 fetchChatrooms(user.id);
                  toast({
                      title: "Joined Group",
                      description: "You have been added to a new chatroom.",
                  });
              } else if (data.event === 'GROUP_INVITE_ACCEPTED') {
-                 // Refresh chatrooms to ensure socket subscriptions are up to date
-                 fetchChatrooms(currentUser.id);
+                 fetchChatrooms(user.id);
                  toast({
                      title: "Invitation Accepted",
                      description: `${data.acceptor_name} joined the group.`,
@@ -113,12 +150,11 @@ export function ChitChatApp() {
         });
 
         socket.on("added_to_room", (data: any) => {
-             // Re-fetch chatrooms to get the new one
-             fetchChatrooms(currentUser.id);
+             fetchChatrooms(user.id);
         });
 
         socket.on("new_private_chat", (data: any) => {
-             fetchChatrooms(currentUser.id);
+             fetchChatrooms(user.id);
         });
 
         socket.on("room_deleted", (data: any) => {
@@ -159,8 +195,6 @@ export function ChitChatApp() {
              });
         });
 
-        setLoading(false);
-
         return () => {
              socket.off("new_message");
              socket.off("new_friend");
@@ -170,13 +204,9 @@ export function ChitChatApp() {
              socket.off("new_private_chat");
              socket.off("room_deleted");
              socket.off("chat_cleared");
+             socket.off("user_status_change");
         }
-      } catch (e) {
-        console.error("Failed to parse user data", e);
-        router.push("/login");
-      }
-    }
-  }, [router]);
+  }, [socket, user]);
 
   const fetchChatrooms = async (userId: string) => {
       try {
@@ -184,10 +214,6 @@ export function ChitChatApp() {
           if (res.ok) {
               const data = await res.json();
               setChatrooms(data.data);
-              // Join sockets for these rooms
-              data.data.forEach((room: Chatroom) => {
-                   socket.emit("join_room", { room_id: room.id });
-              });
           } else {
               console.error("Failed to fetch chatrooms");
           }
@@ -195,6 +221,15 @@ export function ChitChatApp() {
           console.error("Error fetching chatrooms:", error);
       }
   };
+
+  // Join rooms when socket is ready and chatrooms fetched
+  useEffect(() => {
+      if (socket && chatrooms.length > 0) {
+          chatrooms.forEach(room => {
+              socket.emit("join_room", { room_id: room.id });
+          });
+      }
+  }, [socket, chatrooms]); // chatrooms ref changes on setChatrooms
 
   const fetchFriends = async (userId: string) => {
       try {
@@ -211,10 +246,17 @@ export function ChitChatApp() {
   };
 
   const handleSelectChat = async (chatroom: Chatroom) => {
-    // Optimistically set selected chat (will show empty messages initially)
-    // or keep previous selectedChat until data loads.
-    // For better UX, we'll set it immediately and then fetch messages.
-    setSelectedChat(chatroom);
+    // Determine userStatus if DM
+    let userStatus = undefined;
+    if (chatroom.otherUserId) {
+        const friend = friends.find(f => f.id === chatroom.otherUserId);
+        if (friend) {
+            userStatus = { online: friend.online, lastSeen: friend.lastSeen };
+        }
+    }
+
+    // Optimistically set selected chat
+    setSelectedChat({ ...chatroom, userStatus });
 
     try {
         const res = await fetch(`${API_URL}/messages?room_id=${chatroom.id}`);
@@ -222,7 +264,8 @@ export function ChitChatApp() {
             const data = await res.json();
             const fullChatroom = {
                 ...chatroom,
-                messages: data.data
+                messages: data.data,
+                userStatus
             };
             setSelectedChat(fullChatroom);
 
@@ -449,6 +492,7 @@ export function ChitChatApp() {
             onSendMessage={handleSendMessage}
             onAddMember={handleAddMember}
             currentUser={user}
+            socket={socket}
           />
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-center p-4">

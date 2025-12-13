@@ -3,6 +3,7 @@ export type User = {
   name: string;
   avatarUrl: string;
   online: boolean;
+  lastSeen?: string;
 };
 
 export type Message = {
@@ -20,6 +21,8 @@ export type Chatroom = {
   name: string;
   topic: string;
   messages: Message[];
+  otherUserId?: string; // For DMs
+  userStatus?: { online: boolean; lastSeen?: string }; // Local state for UI
 };
 
 export type Friend = User;

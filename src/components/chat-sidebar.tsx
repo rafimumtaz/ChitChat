@@ -172,7 +172,7 @@ function FriendItem({ friend, onRemoveFriend, onStartPrivateChat }: { friend: Fr
             <AvatarImage src={friend.avatarUrl} alt={friend.name} />
             <AvatarFallback>{friend.name.charAt(0)}</AvatarFallback>
           </Avatar>
-          {friend.online && <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-card" />}
+          <div className={cn("absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-card", friend.online ? "bg-green-500" : "bg-gray-400")} />
         </div>
         <span className="flex-1 truncate text-left">{friend.name}</span>
         {isHovered && (
