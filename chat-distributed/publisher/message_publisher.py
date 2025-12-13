@@ -12,10 +12,13 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 
 app = Flask(__name__, static_folder='static')
 CORS(app)  # Enable CORS for all routes
-socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Konfigurasi RabbitMQ
 RABBITMQ_HOST = os.getenv('RABBITMQ_HOST', 'localhost')
+
+# Configure SocketIO to use RabbitMQ as message queue for cross-process emitting
+# Use threading mode to avoid conflict with pika BlockingConnection and eventlet
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading', message_queue=f'amqp://guest:guest@{RABBITMQ_HOST}:5672//')
 RABBITMQ_QUEUE = 'chat_queue'
 
 # Database Configuration (for Auth)
@@ -546,37 +549,30 @@ def invite_to_room():
         if cursor.fetchone():
              return jsonify({"status": "error", "message": "User already in chatroom"}), 409
 
-        # Instead of direct insert, we publish to RabbitMQ as requested
-        # For simplicity in this turn we simulate the publisher by emitting the socket event directly,
-        # but technically we should have pushed to queue.
-        # However, since the user already accepted the synchronous logic for notifications in previous turns,
-        # and moving it to async consumer now would require significant refactoring of the notification consumer logic which wasn't fully requested (only the invite logic).
-        # Wait, the prompt said: "RabbitMQ Event... Consumer Worker: Ensure the background worker listens".
-        # I should probably just insert it here to be safe and consistent with my previous "mostly correct" fix which was accepted.
-        # Actually, let's stick to the synchronous insert for reliability as the consumer logic for notifications wasn't built out in previous turns.
-
-        # Create Notification (GROUP_INVITE)
-        sql = "INSERT INTO notifications (type, sender_id, receiver_id, reference_id, status) VALUES ('GROUP_INVITE', %s, %s, %s, 'unread')"
-        cursor.execute(sql, (sender_id, user_id, room_id))
-        conn.commit()
-
-        # Emit event for real-time UI update
+        # Fetch details for notification message
         cursor.execute("SELECT username FROM users WHERE user_id = %s", (sender_id,))
         sender = cursor.fetchone()
         sender_name = sender[0] if sender else "Unknown"
 
-        # Get room name
         cursor.execute("SELECT room_name FROM chatrooms WHERE room_id = %s", (room_id,))
         room = cursor.fetchone()
         room_name = room[0] if room else "Chatroom"
 
-        socketio.emit('new_notification', {
-            "type": 'GROUP_INVITE',
-            "sender_name": sender_name,
-            "message": f"{sender_name} invited you to {room_name}"
-        }, room=f"user_{user_id}")
+        # Publish to RabbitMQ
+        msg = {
+            'type': 'GROUP_INVITE',
+            'sender_id': sender_id,
+            'receiver_id': user_id,
+            'room_id': room_id,
+            'sender_name': sender_name,
+            'room_name': room_name
+        }
 
-        return jsonify({"status": "success", "message": "Invitation sent"}), 200
+        if publish_message(msg):
+            return jsonify({"status": "success", "message": "Invitation sent"}), 200
+        else:
+            return jsonify({"status": "error", "message": "Failed to send invitation"}), 503
+
     except pymysql.MySQLError as err:
         return jsonify({"status": "error", "message": str(err)}), 500
     finally:
@@ -765,29 +761,24 @@ def add_friend():
         if cursor.fetchone():
              return jsonify({"status": "error", "message": "Already friends"}), 409
 
-        # Send Friend Request
-        # 1. Insert PENDING friendship
-        sql = "INSERT INTO friends (user_id, friend_id, status) VALUES (%s, %s, 'PENDING')"
-        cursor.execute(sql, (user_id, friend_id))
-
-        # 2. Create Notification
-        sql_notif = "INSERT INTO notifications (type, sender_id, receiver_id, reference_id, status) VALUES ('FRIEND_REQUEST', %s, %s, %s, 'unread')"
-        cursor.execute(sql_notif, (user_id, friend_id, user_id))
-
-        conn.commit()
-
-        # Emit event to the friend
+        # Fetch sender name for notification
         cursor.execute("SELECT username FROM users WHERE user_id = %s", (user_id,))
         sender = cursor.fetchone()
-        sender_name = sender[0] if sender else "Unknown"
+        sender_name = sender['username'] if sender else "Unknown"
 
-        socketio.emit('new_notification', {
-            "type": 'FRIEND_REQUEST',
-            "sender_name": sender_name,
-            "message": f"{sender_name} sent you a friend request"
-        }, room=f"user_{friend_id}")
+        # Publish to RabbitMQ
+        msg = {
+            'type': 'FRIEND_REQUEST',
+            'sender_id': user_id,
+            'receiver_id': friend_id,
+            'sender_name': sender_name
+        }
 
-        return jsonify({"status": "success", "message": "Friend request sent"}), 201
+        if publish_message(msg):
+            return jsonify({"status": "success", "message": "Friend request processed"}), 201
+        else:
+            return jsonify({"status": "error", "message": "Failed to send request"}), 503
+
     except pymysql.MySQLError as err:
         return jsonify({"status": "error", "message": str(err)}), 500
     finally:
@@ -989,37 +980,42 @@ def respond_notification(notif_id):
 
         if action == 'ACCEPT':
             if notif['type'] == 'FRIEND_REQUEST':
-                # Update friendship status to ACCEPTED
-                # Find the pending record
-                sql_friend = "UPDATE friends SET status = 'ACCEPTED' WHERE user_id = %s AND friend_id = %s"
-                cursor.execute(sql_friend, (notif['sender_id'], notif['receiver_id']))
-
-                # Emit new friend event so list updates
+                # Fetch sender name (initiator)
                 cursor.execute("SELECT username FROM users WHERE user_id = %s", (notif['sender_id'],))
                 sender = cursor.fetchone()
                 sender_name = sender['username']
 
-                socketio.emit('new_friend', {
-                    "id": str(notif['sender_id']),
-                    "name": sender_name,
-                    "avatarUrl": f"https://ui-avatars.com/api/?name={sender_name}",
-                    "online": True # Approximation
-                }, room=f"user_{notif['receiver_id']}")
+                # Fetch acceptor name (current user)
+                cursor.execute("SELECT username FROM users WHERE user_id = %s", (notif['receiver_id'],))
+                acceptor = cursor.fetchone()
+                acceptor_name = acceptor['username']
+
+                # Publish FRIEND_ACCEPTED
+                msg = {
+                    'type': 'FRIEND_ACCEPTED',
+                    'initiator_id': notif['sender_id'], # Original sender of request
+                    'acceptor_id': notif['receiver_id'], # Current user accepting
+                    'sender_name': sender_name,
+                    'acceptor_name': acceptor_name,
+                    'notif_id': notif_id
+                }
+                publish_message(msg)
 
             elif notif['type'] == 'GROUP_INVITE':
-                # Add to room members
-                sql_member = "INSERT INTO room_members (room_id, user_id) VALUES (%s, %s)"
-                cursor.execute(sql_member, (notif['reference_id'], notif['receiver_id']))
+                 # Publish GROUP_JOINED
+                 msg = {
+                     'type': 'GROUP_JOINED',
+                     'room_id': notif['reference_id'],
+                     'user_id': notif['receiver_id'],
+                     'notif_id': notif_id
+                 }
+                 publish_message(msg)
 
-                # Emit joined room event
-                socketio.emit('added_to_room', {
-                    "room_id": str(notif['reference_id'])
-                }, room=f"user_{notif['receiver_id']}")
+        elif action == 'REJECT':
+            # Just update notif status
+            cursor.execute("UPDATE notifications SET status = 'read' WHERE notif_id = %s", (notif_id,))
+            conn.commit()
 
-        # Mark notification as read (or delete)
-        cursor.execute("UPDATE notifications SET status = 'read' WHERE notif_id = %s", (notif_id,))
-
-        conn.commit()
         return jsonify({"status": "success", "message": f"Request {action.lower()}ed"}), 200
 
     except pymysql.MySQLError as err:

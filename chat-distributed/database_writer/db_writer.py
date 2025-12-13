@@ -102,6 +102,28 @@ ON DUPLICATE KEY UPDATE
     broker_received_at = broker_received_at;
 """
 
+# ---------- Additional SQL for Notifications/Friends ----------
+INSERT_NOTIF_SQL = """
+INSERT INTO notifications (type, sender_id, receiver_id, reference_id, status)
+VALUES (%s, %s, %s, %s, 'unread')
+"""
+
+INSERT_FRIEND_SQL = """
+INSERT INTO friends (user_id, friend_id, status) VALUES (%s, %s, 'PENDING')
+"""
+
+UPDATE_FRIEND_SQL = """
+UPDATE friends SET status = 'ACCEPTED' WHERE user_id = %s AND friend_id = %s
+"""
+
+INSERT_MEMBER_SQL = """
+INSERT INTO room_members (room_id, user_id) VALUES (%s, %s)
+"""
+
+UPDATE_NOTIF_STATUS_SQL = """
+UPDATE notifications SET status = 'read' WHERE notif_id = %s
+"""
+
 # ---------- Utility: validate incoming message ----------
 def _validate_msg(msg):
     if not isinstance(msg, dict):
@@ -187,6 +209,106 @@ def health_check():
 def close_pool():
     _pool.close_all()
 
+
+# ---------- New Writer Functions ----------
+
+def write_friend_request(msg):
+    """
+    Handle FRIEND_REQUEST.
+    Expects msg: { sender_id, receiver_id }
+    """
+    conn = None
+    try:
+        conn = _pool.get_conn()
+        with conn.cursor() as cur:
+            # 1. Friend Table (Pending)
+            # Check if exists first to avoid duplicate errors? Or let it fail/catch?
+            # Assuming idempotent or check before logic in consumer, but safe to try.
+            # Use INSERT IGNORE or try-except for duplicate key?
+            # Prompt says "Backend saves to DB".
+            # For robustness, we check exists.
+            cur.execute("SELECT 1 FROM friends WHERE user_id=%s AND friend_id=%s", (msg['sender_id'], msg['receiver_id']))
+            if not cur.fetchone():
+                cur.execute(INSERT_FRIEND_SQL, (msg['sender_id'], msg['receiver_id']))
+
+                # 2. Notification
+                # Reference ID for friend request is usually sender_id (profile link)
+                cur.execute(INSERT_NOTIF_SQL, ('FRIEND_REQUEST', msg['sender_id'], msg['receiver_id'], msg['sender_id']))
+                conn.commit()
+        return True
+    except Exception as e:
+        logger.exception("Error writing friend request: %s", e)
+        if conn: conn.rollback()
+        return False
+    finally:
+        if conn: _pool.release(conn)
+
+def write_group_invite(msg):
+    """
+    Handle GROUP_INVITE.
+    Expects msg: { sender_id, receiver_id, room_id }
+    """
+    conn = None
+    try:
+        conn = _pool.get_conn()
+        with conn.cursor() as cur:
+            cur.execute(INSERT_NOTIF_SQL, ('GROUP_INVITE', msg['sender_id'], msg['receiver_id'], msg['room_id']))
+            conn.commit()
+        return True
+    except Exception as e:
+        logger.exception("Error writing group invite: %s", e)
+        if conn: conn.rollback()
+        return False
+    finally:
+        if conn: _pool.release(conn)
+
+def write_friend_accept(msg):
+    """
+    Handle FRIEND_ACCEPTED.
+    Expects msg: { initiator_id, acceptor_id, notif_id (optional) }
+    initiator_id: The one who sent the request.
+    acceptor_id: The one who accepted it.
+    """
+    conn = None
+    try:
+        conn = _pool.get_conn()
+        with conn.cursor() as cur:
+            cur.execute(UPDATE_FRIEND_SQL, (msg['initiator_id'], msg['acceptor_id']))
+            if msg.get('notif_id'):
+                cur.execute(UPDATE_NOTIF_STATUS_SQL, (msg['notif_id'],))
+            conn.commit()
+        return True
+    except Exception as e:
+        logger.exception("Error writing friend accept: %s", e)
+        if conn: conn.rollback()
+        return False
+    finally:
+        if conn: _pool.release(conn)
+
+def write_group_join(msg):
+    """
+    Handle GROUP_JOINED (Accept Invite).
+    Expects msg: { room_id, user_id, notif_id (optional) }
+    """
+    conn = None
+    try:
+        conn = _pool.get_conn()
+        with conn.cursor() as cur:
+            # Check if member exists
+            cur.execute("SELECT 1 FROM room_members WHERE room_id=%s AND user_id=%s", (msg['room_id'], msg['user_id']))
+            if not cur.fetchone():
+                cur.execute(INSERT_MEMBER_SQL, (msg['room_id'], msg['user_id']))
+
+            if msg.get('notif_id'):
+                cur.execute(UPDATE_NOTIF_STATUS_SQL, (msg['notif_id'],))
+            conn.commit()
+        return True
+    except Exception as e:
+        logger.exception("Error writing group join: %s", e)
+        if conn: conn.rollback()
+        return False
+    finally:
+        if conn: _pool.release(conn)
 
 # If run directly, demo health check
 if __name__ == "__main__":

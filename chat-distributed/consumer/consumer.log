@@ -1,15 +1,11 @@
 Trying to connect to RabbitMQ...
-2025-12-12 02:27:23,305 [INFO] Pika version 1.3.2 connecting to ('::1', 5672, 0, 0)
-2025-12-12 02:27:23,306 [INFO] Socket connected: <socket.socket fd=6, family=10, type=1, proto=6, laddr=('::1', 50052, 0, 0), raddr=('::1', 5672, 0, 0)>
-2025-12-12 02:27:23,308 [INFO] Streaming transport linked up: (<pika.adapters.utils.io_services_utils._AsyncPlaintextTransport object at 0x7ff022cd1550>, _StreamingProtocolShim: <SelectConnection PROTOCOL transport=<pika.adapters.utils.io_services_utils._AsyncPlaintextTransport object at 0x7ff022cd1550> params=<ConnectionParameters host=localhost port=5672 virtual_host=/ ssl=False>>).
-2025-12-12 02:27:23,314 [INFO] AMQPConnector - reporting success: <SelectConnection OPEN transport=<pika.adapters.utils.io_services_utils._AsyncPlaintextTransport object at 0x7ff022cd1550> params=<ConnectionParameters host=localhost port=5672 virtual_host=/ ssl=False>>
-2025-12-12 02:27:23,315 [INFO] AMQPConnectionWorkflow - reporting success: <SelectConnection OPEN transport=<pika.adapters.utils.io_services_utils._AsyncPlaintextTransport object at 0x7ff022cd1550> params=<ConnectionParameters host=localhost port=5672 virtual_host=/ ssl=False>>
-2025-12-12 02:27:23,315 [INFO] Connection workflow succeeded: <SelectConnection OPEN transport=<pika.adapters.utils.io_services_utils._AsyncPlaintextTransport object at 0x7ff022cd1550> params=<ConnectionParameters host=localhost port=5672 virtual_host=/ ssl=False>>
-2025-12-12 02:27:23,316 [INFO] Created channel=1
+2025-12-13 01:39:14,642 [INFO] Pika version 1.3.2 connecting to ('::1', 5672, 0, 0)
+2025-12-13 01:39:14,644 [INFO] Socket connected: <socket.socket fd=6, family=10, type=1, proto=6, laddr=('::1', 58632, 0, 0), raddr=('::1', 5672, 0, 0)>
+2025-12-13 01:39:14,645 [INFO] Streaming transport linked up: (<pika.adapters.utils.io_services_utils._AsyncPlaintextTransport object at 0x7f9333d91a00>, _StreamingProtocolShim: <SelectConnection PROTOCOL transport=<pika.adapters.utils.io_services_utils._AsyncPlaintextTransport object at 0x7f9333d91a00> params=<ConnectionParameters host=localhost port=5672 virtual_host=/ ssl=False>>).
+2025-12-13 01:39:14,651 [INFO] AMQPConnector - reporting success: <SelectConnection OPEN transport=<pika.adapters.utils.io_services_utils._AsyncPlaintextTransport object at 0x7f9333d91a00> params=<ConnectionParameters host=localhost port=5672 virtual_host=/ ssl=False>>
+2025-12-13 01:39:14,651 [INFO] AMQPConnectionWorkflow - reporting success: <SelectConnection OPEN transport=<pika.adapters.utils.io_services_utils._AsyncPlaintextTransport object at 0x7f9333d91a00> params=<ConnectionParameters host=localhost port=5672 virtual_host=/ ssl=False>>
+2025-12-13 01:39:14,652 [INFO] Connection workflow succeeded: <SelectConnection OPEN transport=<pika.adapters.utils.io_services_utils._AsyncPlaintextTransport object at 0x7f9333d91a00> params=<ConnectionParameters host=localhost port=5672 virtual_host=/ ssl=False>>
+2025-12-13 01:39:14,652 [INFO] Created channel=1
 Consumer started and listening on: chat_queue
-Waiting for messages...
-
-Received message from RabbitMQ: {'sender_id': 2, 'room_id': 2, 'content': 'Check out this file!', 'attachment_url': '/static/uploads/1044dccf-52c2-4ae8-9be2-865b5cfcadd1_testfile.txt', 'attachment_type': None, 'original_name': 'testfile.txt', 'publisher_msg_id': '63102c91-460e-4f32-a415-120777d63f86', 'seq': 0}
-Message Saved to Database & ACK Sent
-Received message from RabbitMQ: {'sender_id': '4', 'room_id': '3', 'content': 'Here is a file', 'attachment_url': '/static/uploads/3705ae0b-751f-4c7a-81cf-ecefe9bf2ae7_upload_test.txt', 'attachment_type': 'text/plain', 'original_name': 'upload_test.txt', 'publisher_msg_id': 'ed156069-b5e4-4e8b-bda1-8c862cdba570', 'seq': 0}
-Message Saved to Database & ACK Sent
+Received message: {'type': 'FRIEND_REQUEST', 'sender_id': '13', 'receiver_id': '14', 'sender_name': 'usera_1765590023'}
+Processed FRIEND_REQUEST
