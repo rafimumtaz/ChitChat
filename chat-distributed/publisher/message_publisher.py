@@ -11,6 +11,7 @@ from werkzeug.utils import secure_filename
 from flask_socketio import SocketIO, emit, join_room, leave_room
 import redis
 from socket_events import register_socket_events
+from gcs_handler import upload_to_gcs
 
 app = Flask(__name__, static_folder='static')
 CORS(app)  # Enable CORS for all routes
@@ -95,27 +96,19 @@ def upload_file():
         filename = secure_filename(file.filename)
         # Generate unique filename
         unique_filename = f"{uuid.uuid4()}_{filename}"
-        upload_folder = os.path.join(app.static_folder, 'uploads')
-        if not os.path.exists(upload_folder):
-            os.makedirs(upload_folder)
 
-        file.save(os.path.join(upload_folder, unique_filename))
+        try:
+            file_url = upload_to_gcs(file, unique_filename, file.content_type)
 
-        # URL for frontend access
-        # Assuming frontend is on same domain or we return full path?
-        # Flask is serving static, so relative path from root or full URL.
-        # Since frontend runs on port 3000 and backend on 5000, usually we need full URL if serving static.
-        # But we can just return relative path and let frontend prepend API_URL if served by Flask.
-        # Or better, return full URL.
-
-        file_url = f"/static/uploads/{unique_filename}"
-
-        return jsonify({
-            "status": "success",
-            "file_url": file_url,
-            "file_type": file.content_type,
-            "original_name": filename
-        }), 201
+            return jsonify({
+                "status": "success",
+                "file_url": file_url,
+                "file_type": file.content_type,
+                "original_name": filename
+            }), 201
+        except Exception as e:
+            print(f"Upload error: {e}")
+            return jsonify({"status": "error", "message": str(e)}), 500
 
 # API Endpoint (Application Layer)
 @app.route('/send-message', methods=['POST'])
