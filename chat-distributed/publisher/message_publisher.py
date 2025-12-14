@@ -1,6 +1,7 @@
 import json
 import os
 import uuid
+import mimetypes
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import pika
@@ -97,13 +98,18 @@ def upload_file():
         # Generate unique filename
         unique_filename = f"{uuid.uuid4()}_{filename}"
 
+        # Detect MIME type
+        mime_type, _ = mimetypes.guess_type(filename)
+        if not mime_type:
+             mime_type = file.content_type or 'application/octet-stream'
+
         try:
-            file_url = upload_to_gcs(file, unique_filename, file.content_type)
+            file_url = upload_to_gcs(file, unique_filename, mime_type)
 
             return jsonify({
                 "status": "success",
                 "file_url": file_url,
-                "file_type": file.content_type,
+                "file_type": mime_type,
                 "original_name": filename
             }), 201
         except Exception as e:
