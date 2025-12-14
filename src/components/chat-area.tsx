@@ -198,8 +198,12 @@ export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser
             <div className="flex items-center gap-2 p-2 mb-2 bg-accent/30 rounded-md border text-sm max-w-fit">
                 {pendingAttachment.type.startsWith('image/') ? (
                     <div className="h-10 w-10 relative overflow-hidden rounded">
-                         {/* We need full URL if backend is different port */}
-                         <img src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${pendingAttachment.url}`} alt="Preview" className="object-cover h-full w-full" />
+                         {/* We need full URL if backend is different port, unless absolute GCS URL */}
+                         <img
+                            src={pendingAttachment.url.startsWith('http') ? pendingAttachment.url : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${pendingAttachment.url}`}
+                            alt="Preview"
+                            className="object-cover h-full w-full"
+                         />
                     </div>
                 ) : (
                     <FileIcon className="h-5 w-5 text-muted-foreground" />
@@ -517,6 +521,11 @@ function ChatMessage({ message, currentUser }: { message: Message; currentUser: 
     const isSender = message.sender.id === currentUser.id;
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
+    const getUrl = (url: string) => {
+        if (url.startsWith('http://') || url.startsWith('https://')) return url;
+        return `${API_URL}${url}`;
+    };
+
   return (
     <div className={cn("flex items-start gap-4", isSender && "flex-row-reverse")}>
       <Avatar className="h-10 w-10">
@@ -532,16 +541,16 @@ function ChatMessage({ message, currentUser }: { message: Message; currentUser: 
           {message.attachment_url && (
               <div className="mb-2">
                   {message.attachment_type?.startsWith('image/') ? (
-                      <a href={`${API_URL}${message.attachment_url}`} target="_blank" rel="noopener noreferrer">
+                      <a href={getUrl(message.attachment_url)} target="_blank" rel="noopener noreferrer">
                           <img
-                            src={`${API_URL}${message.attachment_url}`}
+                            src={getUrl(message.attachment_url)}
                             alt={message.original_name || "Attachment"}
                             className="rounded-md max-h-60 object-cover"
                           />
                       </a>
                   ) : (
                       <a
-                        href={`${API_URL}${message.attachment_url}`}
+                        href={getUrl(message.attachment_url)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-2 p-2 bg-background/20 rounded hover:bg-background/30 transition-colors"
