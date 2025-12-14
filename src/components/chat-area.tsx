@@ -27,7 +27,7 @@ export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser
   const [newMessage, setNewMessage] = useState("");
   const [pendingAttachment, setPendingAttachment] = useState<{ url: string, type: string, name: string } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
 
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -55,19 +55,20 @@ export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser
       const onDisplayTyping = (data: any) => {
           if (data.room_id === selectedChat.id) {
               setTypingUsers(prev => {
-                  const newSet = new Set(prev);
-                  newSet.add(data.user_id);
-                  return newSet;
+                  const newMap = new Map(prev);
+                  newMap.set(data.user_id, data.username);
+                  return newMap;
               });
+              scrollToBottom();
           }
       };
 
       const onHideTyping = (data: any) => {
           if (data.room_id === selectedChat.id) {
               setTypingUsers(prev => {
-                  const newSet = new Set(prev);
-                  newSet.delete(data.user_id);
-                  return newSet;
+                  const newMap = new Map(prev);
+                  newMap.delete(data.user_id);
+                  return newMap;
               });
           }
       };
@@ -76,7 +77,7 @@ export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser
       socket.on("hide_typing", onHideTyping);
 
       // Clear typing users when chat changes
-      setTypingUsers(new Set());
+      setTypingUsers(new Map());
 
       return () => {
           socket.off("display_typing", onDisplayTyping);
@@ -152,9 +153,7 @@ export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser
 
   // Determine header status
   let headerStatus = selectedChat.topic;
-  if (typingUsers.size > 0) {
-      headerStatus = "Typing...";
-  } else if (selectedChat.userStatus) {
+  if (selectedChat.userStatus) {
       // It's a DM and we have status
       if (selectedChat.userStatus.online) {
           headerStatus = "Online";
@@ -172,7 +171,7 @@ export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser
       <header className="p-4 border-b flex items-center justify-between bg-card">
         <div>
           <h2 className="text-lg font-semibold">{selectedChat.name}</h2>
-          <p className={cn("text-sm text-muted-foreground", headerStatus === "Online" && "text-green-600 font-medium", headerStatus === "Typing..." && "text-primary font-medium italic")}>{headerStatus}</p>
+          <p className={cn("text-sm text-muted-foreground", headerStatus === "Online" && "text-green-600 font-medium")}>{headerStatus}</p>
         </div>
         <div className="flex items-center gap-2">
             {(selectedChat.type === 'group' || !selectedChat.type) && (
@@ -186,6 +185,9 @@ export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser
         <div className="p-4 lg:p-8 space-y-6">
           {selectedChat.messages.map((message) => (
             <ChatMessage key={message.id} message={message} currentUser={currentUser} />
+          ))}
+          {Array.from(typingUsers.entries()).map(([userId, username]) => (
+             <TypingBubble key={userId} username={username} />
           ))}
           <div ref={messagesEndRef} />
         </div>
@@ -241,6 +243,28 @@ export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser
           </div>
         </form>
       </footer>
+    </div>
+  );
+}
+
+function TypingBubble({ username }: { username: string }) {
+  return (
+    <div className="flex items-start gap-4">
+      <Avatar className="h-10 w-10">
+        <AvatarFallback>{username.charAt(0)}</AvatarFallback>
+      </Avatar>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-2">
+          <p className="font-semibold text-sm">{username}</p>
+        </div>
+        <div className="p-3 rounded-lg bg-card rounded-bl-none shadow-sm w-fit">
+          <div className="flex gap-1 h-5 items-center px-1">
+            <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+            <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+            <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce"></span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
