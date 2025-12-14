@@ -9,17 +9,11 @@ Werkzeug appears to be used in a production deployment. Consider switching to a 
 Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
  * Debugger is active!
  * Debugger PIN: 132-491-319
-127.0.0.1 - - [13/Dec/2025 10:22:17] "GET /socket.io/?EIO=4&transport=polling&t=5cvb22y5 HTTP/1.1" 200 -
-127.0.0.1 - - [13/Dec/2025 10:22:17] "POST /socket.io/?EIO=4&transport=polling&t=5cvbbo0f&sid=IwCpyukVpnPr4_7lAAAA HTTP/1.1" 200 -
-127.0.0.1 - - [13/Dec/2025 10:22:17] "GET /socket.io/?EIO=4&transport=polling&t=5cvbem3g&sid=IwCpyukVpnPr4_7lAAAA HTTP/1.1" 200 -
-127.0.0.1 - - [13/Dec/2025 10:22:17] "GET /socket.io/?EIO=4&transport=polling&t=5cvemhc1&sid=IwCpyukVpnPr4_7lAAAA HTTP/1.1" 200 -
-127.0.0.1 - - [13/Dec/2025 10:22:18] "GET /socket.io/?EIO=4&transport=polling&t=5cvjhmjx HTTP/1.1" 200 -
-127.0.0.1 - - [13/Dec/2025 10:22:18] "POST /socket.io/?EIO=4&transport=polling&t=5cvjp4xw&sid=HYLIUuz3kVQsZ-KAAAAC HTTP/1.1" 200 -
-127.0.0.1 - - [13/Dec/2025 10:22:18] "GET /socket.io/?EIO=4&transport=polling&t=5cvjsouh&sid=HYLIUuz3kVQsZ-KAAAAC HTTP/1.1" 200 -
-127.0.0.1 - - [13/Dec/2025 10:22:33] "GET /socket.io/?user_id=test_user_123&transport=polling&EIO=4&t=1765621353.4074771 HTTP/1.1" 200 -
-127.0.0.1 - - [13/Dec/2025 10:22:33] "GET /socket.io/?user_id=test_user_123&transport=polling&EIO=4&sid=OyMpyg3zLandYYPqAAAE&t=1765621353.4226418 HTTP/1.1" 200 -
-127.0.0.1 - - [13/Dec/2025 10:22:33] "POST /socket.io/?user_id=test_user_123&transport=polling&EIO=4&sid=OyMpyg3zLandYYPqAAAE HTTP/1.1" 200 -
-127.0.0.1 - - [13/Dec/2025 10:22:33] "GET /socket.io/?user_id=test_user_123&transport=polling&EIO=4&sid=OyMpyg3zLandYYPqAAAE&t=1765621353.4354641 HTTP/1.1" 200 -
-127.0.0.1 - - [13/Dec/2025 10:22:35] "POST /socket.io/?user_id=test_user_123&transport=polling&EIO=4&sid=OyMpyg3zLandYYPqAAAE HTTP/1.1" 200 -
-127.0.0.1 - - [13/Dec/2025 10:22:35] "GET /socket.io/?user_id=test_user_123&transport=polling&EIO=4&sid=OyMpyg3zLandYYPqAAAE&t=1765621353.4470253 HTTP/1.1" 200 -
-127.0.0.1 - - [13/Dec/2025 10:22:37] "[33mGET / HTTP/1.1[0m" 404 -
+127.0.0.1 - - [14/Dec/2025 00:27:32] "GET /socket.io/?EIO=4&transport=polling&t=zjugcsco HTTP/1.1" 200 -
+127.0.0.1 - - [14/Dec/2025 00:27:32] "GET /socket.io/?EIO=4&transport=polling&t=zjudiqek HTTP/1.1" 200 -
+127.0.0.1 - - [14/Dec/2025 00:27:32] "POST /socket.io/?EIO=4&transport=polling&t=zjur91iy&sid=3bsL-WDs9WVgtlM_AAAA HTTP/1.1" 200 -
+127.0.0.1 - - [14/Dec/2025 00:27:32] "GET /socket.io/?EIO=4&transport=polling&t=zjurx97d&sid=3bsL-WDs9WVgtlM_AAAA HTTP/1.1" 200 -
+127.0.0.1 - - [14/Dec/2025 00:27:32] "POST /socket.io/?EIO=4&transport=polling&t=zjusbdoq&sid=f0-KItNSM_7S768kAAAB HTTP/1.1" 200 -
+127.0.0.1 - - [14/Dec/2025 00:27:32] "GET /socket.io/?EIO=4&transport=polling&t=zjuslr6r&sid=f0-KItNSM_7S768kAAAB HTTP/1.1" 200 -
+127.0.0.1 - - [14/Dec/2025 00:27:32] "GET /socket.io/?EIO=4&transport=polling&t=zjutttvt&sid=3bsL-WDs9WVgtlM_AAAA HTTP/1.1" 200 -
+127.0.0.1 - - [14/Dec/2025 00:27:32] "GET /socket.io/?EIO=4&transport=polling&t=zjuug5ah&sid=f0-KItNSM_7S768kAAAB HTTP/1.1" 200 -
