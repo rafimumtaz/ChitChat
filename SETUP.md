@@ -9,6 +9,7 @@ Ensure you have the following installed on your machine:
 - **Node.js 16+** & **npm**
 - **MySQL Server**
 - **RabbitMQ Server**
+- **Redis Server**
 
 ---
 
@@ -55,16 +56,26 @@ DB_POOL_SIZE=5
 
 # RabbitMQ Configuration
 RABBITMQ_HOST=localhost
+
+# Redis Configuration (Optional overrides)
+# REDIS_HOST=localhost
+# REDIS_PORT=6379
 ```
 
-### c. Initialize RabbitMQ
+### c. Start Redis
+Ensure your Redis server is running:
+```bash
+redis-server
+```
+
+### d. Initialize RabbitMQ
 Run the broker setup script once to create the necessary Exchange and Queue:
 ```bash
 python chat-distributed/broker/rabbitmq_broker.py
 ```
 *This ensures the `chat_exchange` and `chat_queue` are created and bound correctly.*
 
-### d. Run the Services
+### e. Run the Services
 You need to run the Publisher and Consumer in separate terminal windows.
 
 **Terminal 1: Publisher (Auth API & Message Sender)**

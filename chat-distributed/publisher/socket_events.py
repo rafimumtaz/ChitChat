@@ -59,6 +59,7 @@ def register_socket_events(socketio, redis_client):
     def handle_typing_start(data):
         user_id = sid_to_user.get(request.sid)
         room_id = data.get('room_id')
+        username = data.get('username', 'Someone')
         if user_id and room_id:
             key = f"typing:room:{room_id}:user:{user_id}"
             redis_client.setex(key, 3, "1")
@@ -66,7 +67,8 @@ def register_socket_events(socketio, redis_client):
             # Emit to room (exclude sender)
             emit('display_typing', {
                 'user_id': user_id,
-                'room_id': room_id
+                'room_id': room_id,
+                'username': username
             }, room=f"room_{room_id}", include_self=False)
 
     @socketio.on('typing_stop')
