@@ -186,9 +186,6 @@ export function ChitChatApp() {
                  return c;
              }));
 
-             // Optional: Toast only if viewing? Or always.
-             // data.room_id is string
-             // selectedChat.id is string
              toast({
                  title: "Chat Cleared",
                  description: "The chat history has been cleared.",
@@ -229,7 +226,7 @@ export function ChitChatApp() {
               socket.emit("join_room", { room_id: room.id });
           });
       }
-  }, [socket, chatrooms]); // chatrooms ref changes on setChatrooms
+  }, [socket, chatrooms]);
 
   const fetchFriends = async (userId: string) => {
       try {
@@ -268,8 +265,6 @@ export function ChitChatApp() {
                 userStatus
             };
             setSelectedChat(fullChatroom);
-
-            // Also update the chatrooms list cache so if we switch back and forth it might persist (optional)
             setChatrooms(prev => prev.map(c => c.id === chatroom.id ? fullChatroom : c));
         } else {
              console.error("Failed to fetch messages");
@@ -400,7 +395,8 @@ export function ChitChatApp() {
                 name: friend.name,
                 topic: "Direct Message",
                 messages: [],
-                type: 'direct' // Assuming Chatroom interface has type optional or we ignore
+                type: 'direct',
+                otherUserId: friend.id // Assuming friend is the other user
             };
 
             // Check if room already in list
@@ -411,7 +407,7 @@ export function ChitChatApp() {
                 setChatrooms(prev => [newChatroom, ...prev]);
                 handleSelectChat(newChatroom);
                 // Join socket room
-                socket.emit("join_room", { room_id: newChatroom.id });
+                if (socket) socket.emit("join_room", { room_id: newChatroom.id });
             }
         }
     } catch (error) {
@@ -434,9 +430,6 @@ export function ChitChatApp() {
         if (!res.ok) {
             console.error("Failed to invite member");
             alert("Failed to invite member");
-        } else {
-            // Frontend updates are handled via socket events 'new_notification' to the invitee
-            // The sender gets a success alert from the dialog component
         }
     } catch (error) {
         console.error("Error inviting member:", error);
@@ -446,9 +439,6 @@ export function ChitChatApp() {
   const handleSendMessage = (content: string, attachment?: { url: string, type: string, name: string }) => {
     if (!selectedChat || !user) return;
 
-    // Call API
-    // We rely on socket 'new_message' event to update the UI to avoid duplicate bubbles
-    // because the backend emits the event to sender as well.
     fetch(`${API_URL}/send-message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
