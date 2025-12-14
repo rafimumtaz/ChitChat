@@ -205,6 +205,13 @@ export function ChatArea({ selectedChat, onSendMessage, onAddMember, currentUser
                             className="object-cover h-full w-full"
                          />
                     </div>
+                ) : pendingAttachment.type.startsWith('video/') ? (
+                    <div className="h-10 w-10 relative overflow-hidden rounded bg-black flex items-center justify-center">
+                         <video
+                            src={pendingAttachment.url.startsWith('http') ? pendingAttachment.url : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${pendingAttachment.url}`}
+                            className="max-h-full max-w-full object-contain"
+                         />
+                    </div>
                 ) : (
                     <FileIcon className="h-5 w-5 text-muted-foreground" />
                 )}
@@ -548,6 +555,12 @@ function ChatMessage({ message, currentUser }: { message: Message; currentUser: 
                             className="rounded-md max-h-60 object-cover"
                           />
                       </a>
+                  ) : message.attachment_type?.startsWith('video/') ? (
+                      <video
+                        controls
+                        src={getUrl(message.attachment_url)}
+                        className="rounded-md max-h-60 max-w-full"
+                      />
                   ) : (
                       <a
                         href={getUrl(message.attachment_url)}
