@@ -6,3 +6,6 @@ pymysql
 werkzeug
 flask-socketio
 redis
+python-dotenv
+eventlet
+kombu
