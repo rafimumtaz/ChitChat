@@ -29,9 +29,7 @@ def upload_to_gcs(file_obj, filename, content_type):
 
     blob.upload_from_file(file_obj, content_type=content_type)
 
-    try:
-        blob.make_public()
-    except Exception as e:
-        print(f"Warning: make_public failed: {e}")
+    # Bucket uses Uniform Bucket-Level Access (IAM), so no need to set ACLs.
+    # Files are public by default via Bucket IAM.
 
     return blob.public_url
