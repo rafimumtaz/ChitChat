@@ -99,7 +99,19 @@ def upload_file():
         unique_filename = f"{uuid.uuid4()}_{filename}"
 
         # Detect MIME type
+        if not mimetypes.inited:
+            mimetypes.init()
+
         mime_type, _ = mimetypes.guess_type(filename)
+
+        # Fallback for common video types if mimetypes registry fails
+        if not mime_type:
+            ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+            if ext == 'mov':
+                mime_type = 'video/quicktime'
+            elif ext == 'mp4':
+                mime_type = 'video/mp4'
+
         if not mime_type:
              mime_type = file.content_type or 'application/octet-stream'
 
